@@ -1,5 +1,4 @@
-## Cryptography
-Blue Marble telemetry server uses a salted SHA 512 hash for user ids.
+## Storage
 All user data is anonymous, even in the event of a database breach.
 However, even if the user data was *not* anonymous, all user data that *could* be used to track players is destroyed after 1 hour.
 Identifying you would require access to your machine.
