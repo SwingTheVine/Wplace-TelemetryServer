@@ -1,19 +1,12 @@
 require('dotenv').config();
 const Fastify = require('fastify');
 const validator = require('validator');
-const crypto = require('crypto');
 const db = require('./database'); // Import the database
 
 // Configuration from enviroment variables and their defaults
 const port = process.env.PORT || 3000;
 const inputCharLimit = parseInt(process.env.INPUT_CHAR_LIMIT, 10) || 100;
 const interval = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES, 10) || 30;
-
-// Retrieves the salt from enviroment or crashes if there is no salt
-const salt = process.env.HASH_SALT || undefined;
-if (!salt) {
-  throw new Error('HASH_SALT environment variable is not set. Stopping. Set HASH_SALT env variable to a random string.');
-}
 
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
 const fastify = Fastify({ logger: true });
@@ -35,9 +28,9 @@ fastify.addHook('onSend', async (request, reply, payload) => {
 
 // Tells processQueue *how* to write/override to the database
 const statement = db.prepare(`
-  INSERT INTO heartbeats (hashId, version, browser, os, lastSeen)
-  VALUES (@hashId, @version, @browser, @os, @lastSeen)
-  ON CONFLICT(hashId) DO UPDATE SET
+  INSERT INTO heartbeats (uuid, version, browser, os, lastSeen)
+  VALUES (@uuid, @version, @browser, @os, @lastSeen)
+  ON CONFLICT(uuid) DO UPDATE SET
     version = excluded.version,
     browser = excluded.browser,
     os = excluded.os,
@@ -73,9 +66,9 @@ setInterval(processQueue, 1); // Process the queue every millisecond
 fastify.post('/heartbeat', async (request, reply) => {
 
   // Validate the request body
-  const { id, version, browser, os } = request.body || {};
-  if (!id || typeof id !== 'string') return reply.status(400).send({ error: 'Invalid ID' });
-  if (id.length > inputCharLimit) return reply.status(400).send({ error: 'ID too long' });
+  const { uuid, version, browser, os } = request.body || {};
+  if (!uuid || typeof uuid !== 'string') return reply.status(400).send({ error: 'Invalid UUID' });
+  if (uuid.length > inputCharLimit) return reply.status(400).send({ error: 'UUID too long' });
   if (version && typeof version !== 'string') return reply.status(400).send({ error: 'Invalid version' });
   if (version.length > inputCharLimit) return reply.status(400).send({ error: 'Version too long' });
   if (browser && typeof browser !== 'string') return reply.status(400).send({ error: 'Invalid browser' });
@@ -84,18 +77,15 @@ fastify.post('/heartbeat', async (request, reply) => {
   if (os.length > inputCharLimit) return reply.status(400).send({ error: 'OS too long' });
 
   // Sanitize inputs
-  const safeId = validator.escape(id);
+  const safeUuid = validator.escape(uuid);
   const safeVersion = version ? validator.escape(version) : null;
   const safeBrowser = browser ? validator.escape(browser) : null;
   const safeOs = os ? validator.escape(os) : null;
 
-  // Generate a unique hash for the userID so database leaks won't expose individual (PII) user traffic patterns
-  const blobHashId = crypto.createHash('sha512').update(salt + safeId).digest();
-
   // This will allow us to track online users and their last seem time.
   const now = Date.now();
   writeQueue.push({
-    hashId: blobHashId,
+    uuid: safeUuid,
     version: safeVersion,
     browser: safeBrowser,
     os: safeOs,
