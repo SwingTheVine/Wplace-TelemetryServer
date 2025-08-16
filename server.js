@@ -79,7 +79,7 @@ setInterval(processQueue, 10);
 // Heartbeat endpoint
 fastify.post('/heartbeat', async (request, reply) => {
 
-  if (isDebug) {console.log(`Received heartbeat from ${request.ip} or ${req.headers['x-forwarded-for']}:`, request.body);}
+  if (isDebug) {console.log(`Received heartbeat from ${request.ip} or ${request.headers['x-forwarded-for']}:`, request.body);}
 
   // Validate the request body
   const { uuid, version, browser, os } = request.body || {};
