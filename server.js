@@ -15,7 +15,7 @@ const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES
 
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
 const fastify = Fastify({
-  logger: true,
+  logger: isDebug ? { level: 'debug' } : false,
   https: {
     key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/privkey.pem'),
     cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/fullchain.pem'),
