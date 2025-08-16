@@ -15,7 +15,6 @@ const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
 const fastify = Fastify({
   logger: true,
-  trustProxy: true,
   https: {
     key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/privkey.pem'),
     cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/fullchain.pem'),
@@ -29,11 +28,18 @@ fastify.register(require('@fastify/rate-limit'), {
   bodyLimit: 1000, // Limit the size of the request body to 1000 bytes
   allowList: [], // Add trusted IPs here if needed
   ban: 3, // Ban the IP after the 2nd 429 response in the time window
+  keyGenerator: (request) => {
+    const ip = request.headers['x-real-ip'] // nginx
+    || request.headers['x-client-ip'] // apache
+    || request.headers['x-forwarded-for'] // use this only if you trust the header
+    || request.ip // fallback to default
+    return ip;
+  }
 }); // Ban time is in milliseconds, so we have to convert minutes to milliseconds
 // Log when an IP exceeds the rate limit
 fastify.addHook('onSend', async (request, reply, payload) => {
   if (reply.statusCode === 429) {
-    console.warn(`IP ${request.ip} exceeded rate limit`);
+    console.warn(`UUID ${validator.escape(request.body.uuid)} exceeded rate limit`);
   }
   return payload;
 });
