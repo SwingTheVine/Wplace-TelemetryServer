@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const Fastify = require('fastify');
 const validator = require('validator');
 const db = require('./database'); // Import the database
@@ -10,15 +11,21 @@ const inputCharLimit = parseInt(process.env.INPUT_CHAR_LIMIT, 10) || 100;
 const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES, 10) || 30; // Default to 30 minutes
 
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
-const fastify = Fastify({ logger: true });
+const fastify = Fastify({logger: true});
 // Register rate limiting to prevent abuse
 // This will limit each IP to 3 requests every 30 minutes
 fastify.register(require('@fastify/rate-limit'), {
   max: 3, // Max requests per IP
   timeWindow: '30 minutes', // Reset cooldown period
+  keyGenerator: (request) => {
+    // Grab the real IP address from Cloudflare header if it exists
+    const cfIp = request.headers['cf-connecting-ip'];
+    const xffIp = request.headers['x-forwarded-for'];
+    return cfIp || (xffIp ? xffIp.split(',')?.[0].trim() : request.ip);
+  },
   allowList: [], // Add trusted IPs here if needed
-  ban: intervalDelivery - 1, // If the limit is exceeded, ban the IP for the interval minus one minute. This is to prevent issues with the ban length exactly matching the time window, which would cause the next valid heartbeat to be rejected.
-});
+  ban: (intervalDelivery - 1) * 60 * 1000, // If the limit is exceeded, ban the IP for the interval minus one minute. This is to prevent issues with the ban length exactly matching the time window, which would cause the next valid heartbeat to be rejected.
+}); // Ban time is in milliseconds, so we have to convert minutes to milliseconds
 // Log when an IP exceeds the rate limit
 fastify.addHook('onSend', async (request, reply, payload) => {
   if (reply.statusCode === 429) {

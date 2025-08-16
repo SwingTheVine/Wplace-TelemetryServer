@@ -1,6 +1,10 @@
 # VSC
 *.code-workspace
 
+# Secrets
+certs/
+*.pem
+
 # Logs
 logs
 *.log
