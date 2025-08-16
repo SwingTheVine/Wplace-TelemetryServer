@@ -231,6 +231,32 @@ fastify.get('/graph/hourly', async (request, reply) => {
     // Get all hourly totals
     const rows = db.prepare('SELECT * FROM totalsHourly ORDER BY hourStart ASC LIMIT 24').all();
 
+    // Add partial hour data from heartbeats
+    const now = Date.now();
+    const currentHourStart = new Date(now);
+    currentHourStart.setMinutes(0, 0, 0);
+    const currentHourStartMs = currentHourStart.getTime();
+    const partialRows = db.prepare('SELECT version, browser, os FROM heartbeats WHERE lastSeen >= ? AND lastSeen < ?').all(currentHourStartMs, now);
+
+    // Aggregate partial hour data
+    const versionTotals = {};
+    const browserTotals = {};
+    const osTotals = {};
+    for (const row of partialRows) {
+      if (row.version) versionTotals[row.version] = (versionTotals[row.version] || 0) + 1;
+      if (row.browser) browserTotals[row.browser] = (browserTotals[row.browser] || 0) + 1;
+      if (row.os) osTotals[row.os] = (osTotals[row.os] || 0) + 1;
+    }
+    const partialHour = {
+      hourStart: currentHourStartMs,
+      onlineUsers: partialRows.length,
+      version: JSON.stringify(versionTotals),
+      browser: JSON.stringify(browserTotals),
+      os: JSON.stringify(osTotals),
+      lastSeen: now
+    };
+    rows.push(partialHour);
+
     const labels = rows.map(row => new Date(row.hourStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     const dataOnlineUsers = rows.map(row => row.onlineUsers);
     const dataVersion = rows.map(row => JSON.parse(row.version));
