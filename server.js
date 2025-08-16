@@ -236,20 +236,10 @@ fastify.get('/graph/hourly', async (request, reply) => {
   const dataBrowser = rows.map(row => JSON.parse(row.browser));
   const dataOs = rows.map(row => JSON.parse(row.os));
 
-  const uniqueVersions = Array.from(hoursMap.values()).map(group => {
-  const versions = group.map(r => r.version);
-    return new Set(versions).size;
-  });
-
-  const uniqueBrowsers = Array.from(hoursMap.values()).map(group => {
-    const browsers = group.map(r => r.browser);
-    return new Set(browsers).size;
-  });
-
-  const uniqueOS = Array.from(hoursMap.values()).map(group => {
-    const osList = group.map(r => r.os);
-    return new Set(osList).size;
-  });
+  // Calculate unique counts for each hour
+  const uniqueVersions = dataVersion.map(versionObj => Object.keys(versionObj).length);
+  const uniqueBrowsers = dataBrowser.map(browserObj => Object.keys(browserObj).length);
+  const uniqueOS = dataOs.map(osObj => Object.keys(osObj).length);
 
   const chartConfig = {
     type: 'line',
