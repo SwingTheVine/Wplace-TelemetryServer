@@ -173,7 +173,7 @@ setTimeout(() => {
   setInterval(() => {
     const endTime = Date.now();
     const previousWeek = endTime - 7 * 24 * 60 * 60 * 1000; // 1 week ago
-    aggregateTotals('totalsDaily', 'totalsWeekly', previousWeek, now, 'weekStart')
+    aggregateTotals('totalsDaily', 'totalsWeekly', previousWeek, endTime, 'weekStart')
   }, 7 * 24 * 60 * 60 * 1000);
 }, msUntilNextWeek());
 
@@ -182,7 +182,7 @@ setTimeout(() => {
   setInterval(() => {
     const endTime = Date.now();
     const previousMonth = endTime - 30 * 24 * 60 * 60 * 1000; // 1 month ago
-    aggregateTotals('totalsWeekly', 'totalsMonthly', previousMonth, now, 'monthStart')
+    aggregateTotals('totalsWeekly', 'totalsMonthly', previousMonth, endTime, 'monthStart')
   }, 30 * 24 * 60 * 60 * 1000);
 });
 
@@ -191,7 +191,7 @@ setTimeout(() => {
   setInterval(() => {
     const endTime = Date.now();
     const previousYear = endTime - 365 * 24 * 60 * 60 * 1000; // 1 year ago
-    aggregateTotals('totalsMonthly', 'totalsYearly', previousYear, now, 'yearStart')
+    aggregateTotals('totalsMonthly', 'totalsYearly', previousYear, endTime, 'yearStart')
   }, 365 * 24 * 60 * 60 * 1000);
 });
 
