@@ -25,6 +25,7 @@ const fastify = Fastify({
 fastify.register(require('@fastify/rate-limit'), {
   max: 3, // Max requests per IP
   timeWindow: '30 minutes', // Reset cooldown period
+  bodyLimit: 1000, // Limit the size of the request body to 1000 bytes
   allowList: [], // Add trusted IPs here if needed
   ban: (intervalDelivery - 1) * 60 * 1000, // If the limit is exceeded, ban the IP for the interval minus one minute. This is to prevent issues with the ban length exactly matching the time window, which would cause the next valid heartbeat to be rejected.
 }); // Ban time is in milliseconds, so we have to convert minutes to milliseconds
