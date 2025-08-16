@@ -19,12 +19,13 @@ This is the data **stored** by the server:
 4. Your Operating System type
 5. The time the request was sent
 
-The stored data is deleted every 1 hour, and is compiled into the following long-term storage:
+The stored data is deleted every hour, and is compiled into the following long-term storage:
 * Total users (E.g. 58 Blue Marble users this hour)
-* How many of each type of browser (E.g. 50 Chrome users; 24 Firefox users this hour)
-* How many of each type of operating system (E.g. 148 Edge users; 39 Windows users this hour)
+* How many users of each type of Blue Marbler version (E.g. 1938 v1.0.0 users; 14 v0.91.0 users)
+* How many users of each type of browser (E.g. 50 Chrome users; 24 Firefox users this hour)
+* How many users of each type of operating system (E.g. 148 Edge users; 39 Windows users this hour)
 
-The long-term storage is stripped of all PII. Therefore, the data can be considered ephemeral and anonymous.
+The long-term storage is stripped of all PII. Therefore, the data can be considered ephemeral/anonymous.
 
 ## Disclaimers
 ### Who has access to the server?
@@ -39,7 +40,7 @@ At the very ***most***, the information can be used to discover:
 * The time you play wplace (from the time the request was sent)
 * The city you live in (from the IP address)
 
-It is impossible to identify you anymore that that, from unlimited read/write access to just this telemetry server, and the data stored inside it.
+It is impossible to identify you anymore that that, from unlimited read/write access to *just* this telemetry server, and the data stored inside it.
 
 ### GDPR/CCPA
 Please note that our telemetry system is designed to store personally identifiable information (PII) only for a maximum of 1 hour. After this period, all PII (including IP addresses and UUIDs) is automatically and permanently deleted from our server.

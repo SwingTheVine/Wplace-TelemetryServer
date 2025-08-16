@@ -7,22 +7,23 @@ const cron = require('node-cron');
 
 // Configuration from enviroment variables and their defaults
 const port = process.env.PORT || 3000;
+const fastifyPort = parseInt(process.env.FASTIFY_PORT, 10) || 3001; // Default to 3001 if not set
 const inputCharLimit = parseInt(process.env.INPUT_CHAR_LIMIT, 10) || 100;
 const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES, 10) || 30; // Default to 30 minutes
 
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
-const fastify = Fastify({logger: true});
+const fastify = Fastify({
+  logger: true,
+  https: {
+    key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/privkey.pem'),
+    cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/fullchain.pem'),
+  }
+});
 // Register rate limiting to prevent abuse
 // This will limit each IP to 3 requests every 30 minutes
 fastify.register(require('@fastify/rate-limit'), {
   max: 3, // Max requests per IP
   timeWindow: '30 minutes', // Reset cooldown period
-  keyGenerator: (request) => {
-    // Grab the real IP address from Cloudflare header if it exists
-    const cfIp = request.headers['cf-connecting-ip'];
-    const xffIp = request.headers['x-forwarded-for'];
-    return cfIp || (xffIp ? xffIp.split(',')?.[0].trim() : request.ip);
-  },
   allowList: [], // Add trusted IPs here if needed
   ban: (intervalDelivery - 1) * 60 * 1000, // If the limit is exceeded, ban the IP for the interval minus one minute. This is to prevent issues with the ban length exactly matching the time window, which would cause the next valid heartbeat to be rejected.
 }); // Ban time is in milliseconds, so we have to convert minutes to milliseconds
@@ -159,7 +160,7 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
 
 // Hourly
 cron.schedule('0 * * * *', () => {
-  console.log("Hourly job");
+  console.log(`Hourly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 60 * 60 * 1000;
   aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart');
@@ -167,7 +168,7 @@ cron.schedule('0 * * * *', () => {
 
 // Daily
 cron.schedule('0 0 * * *', () => {
-  console.log("Daily job");
+  console.log(`Daily job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 24 * 60 * 60 * 1000;
   aggregateTotals('totalsHourly', 'totalsDaily', startTime, endTime, 'dayStart');
@@ -175,7 +176,7 @@ cron.schedule('0 0 * * *', () => {
 
 // Weekly (Sunday midnight)
 cron.schedule('0 0 * * 0', () => {
-  console.log("Weekly job");
+  console.log(`Weekly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 7 * 24 * 60 * 60 * 1000;
   aggregateTotals('totalsDaily', 'totalsWeekly', startTime, endTime, 'weekStart');
@@ -183,7 +184,7 @@ cron.schedule('0 0 * * 0', () => {
 
 // Monthly (1st of each month)
 cron.schedule('0 0 1 * *', () => {
-  console.log("Monthly job");
+  console.log(`Monthly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const d = new Date();
   d.setMonth(d.getMonth() - 1);
@@ -193,7 +194,7 @@ cron.schedule('0 0 1 * *', () => {
 
 // Yearly (Jan 1st)
 cron.schedule('0 0 1 1 *', () => {
-  console.log("Yearly job");
+  console.log(`Yearly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const d = new Date();
   d.setFullYear(d.getFullYear() - 1);
@@ -202,5 +203,5 @@ cron.schedule('0 0 1 1 *', () => {
 });
 
 // Start server
-fastify.listen({ port: port, host: '0.0.0.0' })
-  .then(() => console.log(`Telemetry server running on port ${port}`));
+fastify.listen({ port: fastifyPort, host: '0.0.0.0' })
+  .then(() => console.log(`Fastify running on port ${fastifyPort}`));

@@ -4,6 +4,8 @@
 # Secrets
 certs/
 *.pem
+*.crt
+*.key
 
 # Logs
 logs
