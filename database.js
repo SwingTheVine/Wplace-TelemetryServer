@@ -21,7 +21,7 @@ db.prepare(`
     version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
     browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
     os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
-    lastSeen INTEGER -- Timestamp of last hour (Unix Timestamp)
+    lastSeen INTEGER -- Timestamp of end of hour (Unix Timestamp)
   )
 `).run();
 
@@ -34,7 +34,7 @@ db.prepare(`
     version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
     browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
     os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
-    lastSeen INTEGER -- Timestamp of last day (Unix Timestamp)
+    lastSeen INTEGER -- Timestamp of end of day (Unix Timestamp)
   )
 `).run();
 
@@ -47,7 +47,7 @@ db.prepare(`
     version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
     browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
     os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
-    lastSeen INTEGER -- Timestamp of last week (Unix Timestamp)
+    lastSeen INTEGER -- Timestamp of end of week (Unix Timestamp)
   )
 `).run();
 
@@ -60,7 +60,7 @@ db.prepare(`
     version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
     browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
     os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
-    lastSeen INTEGER -- Timestamp of last month (Unix Timestamp)
+    lastSeen INTEGER -- Timestamp of end of month (Unix Timestamp)
   )
 `).run();
 
@@ -73,7 +73,7 @@ db.prepare(`
     version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
     browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
     os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
-    lastSeen INTEGER -- Timestamp of last year (Unix Timestamp)
+    lastSeen INTEGER -- Timestamp of end of year (Unix Timestamp)
   )
 `).run();
 
