@@ -6,6 +6,7 @@ const db = require('./database'); // Import the database
 const cron = require('node-cron');
 
 // Configuration from enviroment variables and their defaults
+const isDebug = process.env.DEBUG === 'true';
 const port = process.env.PORT || 3000;
 const fastifyPort = parseInt(process.env.FASTIFY_PORT, 10) || 3001; // Default to 3001 if not set
 const inputCharLimit = parseInt(process.env.INPUT_CHAR_LIMIT, 10) || 100;
@@ -76,6 +77,8 @@ setInterval(processQueue, 10);
 // Heartbeat endpoint
 fastify.post('/heartbeat', async (request, reply) => {
 
+  if (isDebug) {console.log('Received heartbeat:', request.body);}
+
   // Validate the request body
   const { uuid, version, browser, os } = request.body || {};
   if (!uuid || typeof uuid !== 'string') return reply.status(400).send({ error: 'Invalid UUID' });
@@ -120,6 +123,12 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
     FROM ${sourceTable}
     WHERE lastSeen >= ? AND lastSeen < ?
   `).all(startTime, endTime);
+
+  if (isDebug) {
+    console.log(`Aggregating from ${sourceTable} to ${targetTable} for interval ${new Date(startTime).toISOString()} - ${new Date(endTime).toISOString()}`);
+    console.log(`Found ${rows.length} rows to aggregate.`);
+    console.log('Rows:', rows);
+  }
 
   const versionTotals = {};
   const browserTotals = {};
