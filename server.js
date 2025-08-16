@@ -4,6 +4,7 @@ const Fastify = require('fastify');
 const validator = require('validator');
 const db = require('./database'); // Import the database
 const cron = require('node-cron');
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 
 // Configuration from enviroment variables and their defaults
 const isDebug = process.env.DEBUG === 'true';
@@ -217,6 +218,97 @@ cron.schedule('0 0 1 1 *', () => {
   d.setFullYear(d.getFullYear() - 1);
   const startTime = d.getTime();
   aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart');
+});
+
+const width = 800; // Width of the chart
+const height = 400; // Height of the chart
+const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+
+// Endpoint to get hourly totals as a chart
+fastify.get('/graph/hourly', async (request, reply) => {
+
+  // Get all hourly totals
+  const rows = db.prepare('SELECT * FROM totalsHourly ORDER BY hourStart ASC LIMIT 24').all();
+
+  const labels = rows.map(row => new Date(row.hourStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const dataOnlineUsers = rows.map(row => row.onlineUsers);
+  const dataVersion = rows.map(row => JSON.parse(row.version));
+  const dataBrowser = rows.map(row => JSON.parse(row.browser));
+  const dataOs = rows.map(row => JSON.parse(row.os));
+
+  const uniqueVersions = Array.from(hoursMap.values()).map(group => {
+  const versions = group.map(r => r.version);
+    return new Set(versions).size;
+  });
+
+  const uniqueBrowsers = Array.from(hoursMap.values()).map(group => {
+    const browsers = group.map(r => r.browser);
+    return new Set(browsers).size;
+  });
+
+  const uniqueOS = Array.from(hoursMap.values()).map(group => {
+    const osList = group.map(r => r.os);
+    return new Set(osList).size;
+  });
+
+  const chartConfig = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Users',
+        data: dataOnlineUsers, // Display number of online users
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: true,
+      },
+      {
+        label: 'Versions',
+        data: uniqueVersions, // Display number of unique versions
+        borderColor: 'rgba(153, 102, 255, 1)',
+        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+        fill: true,
+      },
+      {
+        label: 'Browsers',
+        data: uniqueBrowsers, // Display number of unique browsers
+        borderColor: 'rgba(255, 159, 64, 1)',
+        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+        fill: true,
+      },
+      {
+        label: 'Operating Systems',
+        data: uniqueOS, // Display number of unique OSes
+        borderColor: 'rgba(255, 99, 132, 1)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        fill: true,
+      }
+    ],
+  },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Time'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Online Users'
+          }
+        }
+      }
+    }
+  };
+
+  // Generate the chart as a buffer
+  const imageBuffer = await chartJSNodeCanvas.renderToBuffer(chartConfig);
+
+  // Set the response type
+  reply.type('image/png').send(imageBuffer);
 });
 
 // Start server
