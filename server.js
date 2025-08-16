@@ -227,78 +227,113 @@ const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 // Endpoint to get hourly totals as a chart
 fastify.get('/graph/hourly', async (request, reply) => {
 
-  // Get all hourly totals
-  const rows = db.prepare('SELECT * FROM totalsHourly ORDER BY hourStart ASC LIMIT 24').all();
+  try {
+    // Get all hourly totals
+    const rows = db.prepare('SELECT * FROM totalsHourly ORDER BY hourStart ASC LIMIT 24').all();
 
-  const labels = rows.map(row => new Date(row.hourStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  const dataOnlineUsers = rows.map(row => row.onlineUsers);
-  const dataVersion = rows.map(row => JSON.parse(row.version));
-  const dataBrowser = rows.map(row => JSON.parse(row.browser));
-  const dataOs = rows.map(row => JSON.parse(row.os));
+    const labels = rows.map(row => new Date(row.hourStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    const dataOnlineUsers = rows.map(row => row.onlineUsers);
+    const dataVersion = rows.map(row => JSON.parse(row.version));
+    const dataBrowser = rows.map(row => JSON.parse(row.browser));
+    const dataOs = rows.map(row => JSON.parse(row.os));
 
-  // Calculate unique counts for each hour
-  const uniqueVersions = dataVersion.map(versionObj => Object.keys(versionObj).length);
-  const uniqueBrowsers = dataBrowser.map(browserObj => Object.keys(browserObj).length);
-  const uniqueOS = dataOs.map(osObj => Object.keys(osObj).length);
+    // Calculate unique counts for each hour
+    const uniqueVersions = dataVersion.map(obj => Object.keys(obj).length);
+    const uniqueBrowsers = dataBrowser.map(obj => Object.keys(obj).length);
+    const uniqueOS = dataOs.map(obj => Object.keys(obj).length);
 
-  const chartConfig = {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Users',
-        data: dataOnlineUsers, // Display number of online users
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        fill: true,
-      },
-      {
-        label: 'Versions',
-        data: uniqueVersions, // Display number of unique versions
-        borderColor: 'rgba(153, 102, 255, 1)',
-        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-        fill: true,
-      },
-      {
-        label: 'Browsers',
-        data: uniqueBrowsers, // Display number of unique browsers
-        borderColor: 'rgba(255, 159, 64, 1)',
-        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-        fill: true,
-      },
-      {
-        label: 'Operating Systems',
-        data: uniqueOS, // Display number of unique OSes
-        borderColor: 'rgba(255, 99, 132, 1)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        fill: true,
-      }
-    ],
-  },
-    options: {
-      responsive: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Time'
+    const chartConfig = {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Users',
+          data: dataOnlineUsers, // Display number of online users
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          fill: true,
+        },
+        {
+          label: 'Versions',
+          data: uniqueVersions, // Display number of unique versions
+          borderColor: 'rgba(153, 102, 255, 1)',
+          backgroundColor: 'rgba(153, 102, 255, 0.2)',
+          fill: true,
+        },
+        {
+          label: 'Browsers',
+          data: uniqueBrowsers, // Display number of unique browsers
+          borderColor: 'rgba(255, 159, 64, 1)',
+          backgroundColor: 'rgba(255, 159, 64, 0.2)',
+          fill: true,
+        },
+        {
+          label: 'Operating Systems',
+          data: uniqueOS, // Display number of unique OSes
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          fill: true,
+        }
+      ],
+    },
+      options: {
+        responsive: false,
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Time',
+              color: '#ffffff'
+            },
+            ticks: {
+              maxTicksLimit: 24,
+              color: '#ffffff'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Online Users',
+              color: '#ffffff'
+            },
+            ticks: {
+              color: '#ffffff',
+              callback: function(value) {
+                return Number.isInteger(value) ? value : '';
+              }
+            }
           }
         },
-        y: {
-          title: {
-            display: true,
-            text: 'Online Users'
+        plugins: {
+          legend: {
+            labels: {
+              color: '#ffffff' // legend text color
+            }
           }
         }
-      }
-    }
-  };
+      },
+      plugins: [{
+        id: 'customBackgroundColor',
+        beforeDraw: (chart) => {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = '#2450A4'; // chart background color
+          ctx.fillRect(0, 0, chart.width, chart.height);
+          ctx.restore();
+        }
+      }]
+    };
 
-  // Generate the chart as a buffer
-  const imageBuffer = await chartJSNodeCanvas.renderToBuffer(chartConfig);
+    // Generate the chart as a buffer
+    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(chartConfig);
 
-  // Set the response type
-  reply.type('image/png').send(imageBuffer);
+    // Set the response type
+    reply.type('image/png').send(imageBuffer);
+  } catch (exception) {
+    console.error('Error generating chart:', exception);
+    reply.status(500).send({ error: 'Failed to generate chart' });
+  }
 });
 
 // Start server
