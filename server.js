@@ -2,6 +2,7 @@ require('dotenv').config();
 const Fastify = require('fastify');
 const validator = require('validator');
 const db = require('./database'); // Import the database
+const cron = require('node-cron');
 
 // Configuration from enviroment variables and their defaults
 const port = process.env.PORT || 3000;
@@ -149,87 +150,48 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
   `).run(startTime, endTime);
 }
 
-// Utility to align jobs to system time boundaries
-function scheduleAtBoundary(boundary, job) {
-  function getNextTarget() {
-    const now = new Date();
-    let target;
-
-    if (boundary === "hour") {
-      target = new Date(now);
-      target.setMinutes(0, 0, 0);
-      target.setHours(target.getHours() + 1);
-    } else if (boundary === "day") {
-      target = new Date(now);
-      target.setHours(0, 0, 0, 0);
-      target.setDate(target.getDate() + 1);
-    } else if (boundary === "week") {
-      target = new Date(now);
-      target.setHours(0, 0, 0, 0);
-      // Assuming weeks start Monday
-      const day = target.getDay(); // 0=Sunday, 1=Monday...
-      const daysToAdd = (day === 0 ? 1 : 8 - day);
-      target.setDate(target.getDate() + daysToAdd);
-    } else if (boundary === "month") {
-      target = new Date(now);
-      target.setHours(0, 0, 0, 0);
-      target.setMonth(target.getMonth() + 1, 1); // 1st of next month
-    } else if (boundary === "year") {
-      target = new Date(now);
-      target.setHours(0, 0, 0, 0);
-      target.setMonth(0, 1); // Jan 1st
-      target.setFullYear(target.getFullYear() + 1);
-    }
-    return target;
-  }
-
-  function scheduleNext() {
-    const target = getNextTarget();
-    const delay = target.getTime() - Date.now();
-
-    setTimeout(() => {
-      job(target);
-      scheduleNext(); // reschedule for the following boundary
-    }, delay);
-  }
-
-  scheduleNext();
-}
-
-// Example usage:
-scheduleAtBoundary("hour", (when) => {
-  console.log("Hourly job at:", when.toISOString());
+// Hourly
+cron.schedule('0 * * * *', () => {
+  console.log("Hourly job");
   const endTime = Date.now();
-  const startTime = endTime - 60 * 60 * 1000; // 1 hour ago;
+  const startTime = endTime - 60 * 60 * 1000;
   aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart');
 });
 
-scheduleAtBoundary("day", (when) => {
-  console.log("Daily job at:", when.toISOString());
+// Daily
+cron.schedule('0 0 * * *', () => {
+  console.log("Daily job");
   const endTime = Date.now();
-  const previousDay = endTime - 24 * 60 * 60 * 1000; // 1 day ago
-  aggregateTotals('totalsHourly', 'totalsDaily', previousDay, endTime, 'dayStart');
+  const startTime = endTime - 24 * 60 * 60 * 1000;
+  aggregateTotals('totalsHourly', 'totalsDaily', startTime, endTime, 'dayStart');
 });
 
-scheduleAtBoundary("week", (when) => {
-  console.log("Weekly job at:", when.toISOString());
+// Weekly (Sunday midnight)
+cron.schedule('0 0 * * 0', () => {
+  console.log("Weekly job");
   const endTime = Date.now();
-  const previousWeek = endTime - 7 * 24 * 60 * 60 * 1000; // 1 week ago
-  aggregateTotals('totalsDaily', 'totalsWeekly', previousWeek, endTime, 'weekStart');
+  const startTime = endTime - 7 * 24 * 60 * 60 * 1000;
+  aggregateTotals('totalsDaily', 'totalsWeekly', startTime, endTime, 'weekStart');
 });
 
-scheduleAtBoundary("month", (when) => {
-  console.log("Monthly job at:", when.toISOString());
-    const endTime = Date.now();
-    const previousMonth = endTime - 30 * 24 * 60 * 60 * 1000; // 1 month ago
-    aggregateTotals('totalsWeekly', 'totalsMonthly', previousMonth, endTime, 'monthStart');
+// Monthly (1st of each month)
+cron.schedule('0 0 1 * *', () => {
+  console.log("Monthly job");
+  const endTime = Date.now();
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  const startTime = d.getTime();
+  aggregateTotals('totalsWeekly', 'totalsMonthly', startTime, endTime, 'monthStart');
 });
 
-scheduleAtBoundary("year", (when) => {
-  console.log("Yearly job at:", when.toISOString());
-    const endTime = Date.now();
-    const previousYear = endTime - 365 * 24 * 60 * 60 * 1000; // 1 year ago
-    aggregateTotals('totalsMonthly', 'totalsYearly', previousYear, endTime, 'yearStart');
+// Yearly (Jan 1st)
+cron.schedule('0 0 1 1 *', () => {
+  console.log("Yearly job");
+  const endTime = Date.now();
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  const startTime = d.getTime();
+  aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart');
 });
 
 // Start server
