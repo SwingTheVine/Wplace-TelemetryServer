@@ -7,7 +7,6 @@ const db = require('./database'); // Import the database
 const port = process.env.PORT || 3000;
 const inputCharLimit = parseInt(process.env.INPUT_CHAR_LIMIT, 10) || 100;
 const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES, 10) || 30; // Default to 30 minutes
-const intervalLogging = parseInt(process.env.EXPECTED_LOGGING_INTERVAL_MINUTES, 10) * 60 * 1000 || 60 * 60 * 1000; // Default to 1 hour
 
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
 const fastify = Fastify({ logger: true });
@@ -150,78 +149,88 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
   `).run(startTime, endTime);
 }
 
-setTimeout(() => {
+// Utility to align jobs to system time boundaries
+function scheduleAtBoundary(boundary, job) {
+  function getNextTarget() {
+    const now = new Date();
+    let target;
 
-  setInterval(() => {
-    const endTime = Date.now();
-    const startTime = endTime - 60 * 60 * 1000; // 1 hour ago;
-    aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart')
-  }, 60 * 60 * 1000);
-}, msUntilNextHour());
+    if (boundary === "hour") {
+      target = new Date(now);
+      target.setMinutes(0, 0, 0);
+      target.setHours(target.getHours() + 1);
+    } else if (boundary === "day") {
+      target = new Date(now);
+      target.setHours(0, 0, 0, 0);
+      target.setDate(target.getDate() + 1);
+    } else if (boundary === "week") {
+      target = new Date(now);
+      target.setHours(0, 0, 0, 0);
+      // Assuming weeks start Monday
+      const day = target.getDay(); // 0=Sunday, 1=Monday...
+      const daysToAdd = (day === 0 ? 1 : 8 - day);
+      target.setDate(target.getDate() + daysToAdd);
+    } else if (boundary === "month") {
+      target = new Date(now);
+      target.setHours(0, 0, 0, 0);
+      target.setMonth(target.getMonth() + 1, 1); // 1st of next month
+    } else if (boundary === "year") {
+      target = new Date(now);
+      target.setHours(0, 0, 0, 0);
+      target.setMonth(0, 1); // Jan 1st
+      target.setFullYear(target.getFullYear() + 1);
+    }
+    return target;
+  }
 
-setTimeout(() => {
+  function scheduleNext() {
+    const target = getNextTarget();
+    const delay = target.getTime() - Date.now();
 
-  setInterval(() => {
-    const endTime = Date.now();
-    const previousDay = endTime - 24 * 60 * 60 * 1000; // 1 day ago
-    aggregateTotals('totalsHourly', 'totalsDaily', previousDay, endTime, 'dayStart')
-  }, 24 * 60 * 60 * 1000);
-}, msUntilNextDay());
+    setTimeout(() => {
+      job(target);
+      scheduleNext(); // reschedule for the following boundary
+    }, delay);
+  }
 
-setTimeout(() => {
+  scheduleNext();
+}
 
-  setInterval(() => {
-    const endTime = Date.now();
-    const previousWeek = endTime - 7 * 24 * 60 * 60 * 1000; // 1 week ago
-    aggregateTotals('totalsDaily', 'totalsWeekly', previousWeek, endTime, 'weekStart')
-  }, 7 * 24 * 60 * 60 * 1000);
-}, msUntilNextWeek());
+// Example usage:
+scheduleAtBoundary("hour", (when) => {
+  console.log("Hourly job at:", when.toISOString());
+  const endTime = Date.now();
+  const startTime = endTime - 60 * 60 * 1000; // 1 hour ago;
+  aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart');
+});
 
-setTimeout(() => {
+scheduleAtBoundary("day", (when) => {
+  console.log("Daily job at:", when.toISOString());
+  const endTime = Date.now();
+  const previousDay = endTime - 24 * 60 * 60 * 1000; // 1 day ago
+  aggregateTotals('totalsHourly', 'totalsDaily', previousDay, endTime, 'dayStart');
+});
 
-  setInterval(() => {
+scheduleAtBoundary("week", (when) => {
+  console.log("Weekly job at:", when.toISOString());
+  const endTime = Date.now();
+  const previousWeek = endTime - 7 * 24 * 60 * 60 * 1000; // 1 week ago
+  aggregateTotals('totalsDaily', 'totalsWeekly', previousWeek, endTime, 'weekStart');
+});
+
+scheduleAtBoundary("month", (when) => {
+  console.log("Monthly job at:", when.toISOString());
     const endTime = Date.now();
     const previousMonth = endTime - 30 * 24 * 60 * 60 * 1000; // 1 month ago
-    aggregateTotals('totalsWeekly', 'totalsMonthly', previousMonth, endTime, 'monthStart')
-  }, 30 * 24 * 60 * 60 * 1000);
+    aggregateTotals('totalsWeekly', 'totalsMonthly', previousMonth, endTime, 'monthStart');
 });
 
-setTimeout(() => {
-
-  setInterval(() => {
+scheduleAtBoundary("year", (when) => {
+  console.log("Yearly job at:", when.toISOString());
     const endTime = Date.now();
     const previousYear = endTime - 365 * 24 * 60 * 60 * 1000; // 1 year ago
-    aggregateTotals('totalsMonthly', 'totalsYearly', previousYear, endTime, 'yearStart')
-  }, 365 * 24 * 60 * 60 * 1000);
+    aggregateTotals('totalsMonthly', 'totalsYearly', previousYear, endTime, 'yearStart');
 });
-
-function msUntilNextHour() {
-  const now = new Date();
-  return ((60 - now.getMinutes() - 1) * 60 * 1000) + ((60 - now.getSeconds() - 1) * 1000) + (1000 - now.getMilliseconds());
-}
-
-function msUntilNextDay() {
-  const now = new Date();
-  return ((24 - now.getHours() - 1) * 60 * 60 * 1000) + ((60 - now.getMinutes() - 1) * 60 * 1000) + ((60 - now.getSeconds() - 1) * 1000) + (1000 - now.getMilliseconds());
-}
-
-function msUntilNextWeek() {
-  const now = new Date();
-  const daysUntilSunday = (7 - now.getDay()) % 7;
-  return (daysUntilSunday * 24 * 60 * 60 * 1000) + ((24 - now.getHours() - 1) * 60 * 60 * 1000) + ((60 - now.getMinutes() - 1) * 60 * 1000) + ((60 - now.getSeconds() - 1) * 1000) + (1000 - now.getMilliseconds());
-}
-
-function msUntilNextMonth() {
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return nextMonth - now;
-}
-
-function msUntilNextYear() {
-  const now = new Date();
-  const nextYear = new Date(now.getFullYear() + 1, 0, 1);
-  return nextYear - now;
-}
 
 // Start server
 fastify.listen({ port: port, host: '0.0.0.0' })
