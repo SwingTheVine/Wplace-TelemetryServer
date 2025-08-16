@@ -15,6 +15,7 @@ const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
 const fastify = Fastify({
   logger: true,
+  trustProxy: true,
   https: {
     key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/privkey.pem'),
     cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/fullchain.pem'),
@@ -24,10 +25,10 @@ const fastify = Fastify({
 // This will limit each IP to 3 requests every 30 minutes
 fastify.register(require('@fastify/rate-limit'), {
   max: 3, // Max requests per IP
-  timeWindow: '30 minutes', // Reset cooldown period
+  timeWindow: `${intervalDelivery} minutes`, // Reset cooldown period
   bodyLimit: 1000, // Limit the size of the request body to 1000 bytes
   allowList: [], // Add trusted IPs here if needed
-  ban: (intervalDelivery - 1) * 60 * 1000, // If the limit is exceeded, ban the IP for the interval minus one minute. This is to prevent issues with the ban length exactly matching the time window, which would cause the next valid heartbeat to be rejected.
+  ban: 3, // Ban the IP after the 2nd 429 response in the time window
 }); // Ban time is in milliseconds, so we have to convert minutes to milliseconds
 // Log when an IP exceeds the rate limit
 fastify.addHook('onSend', async (request, reply, payload) => {
@@ -78,7 +79,7 @@ setInterval(processQueue, 10);
 // Heartbeat endpoint
 fastify.post('/heartbeat', async (request, reply) => {
 
-  if (isDebug) {console.log('Received heartbeat:', request.body);}
+  if (isDebug) {console.log(`Received heartbeat from ${request.ip} or ${req.headers['x-forwarded-for']}:`, request.body);}
 
   // Validate the request body
   const { uuid, version, browser, os } = request.body || {};
@@ -126,8 +127,8 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
   `).all(startTime, endTime);
 
   if (isDebug) {
-    console.log(`Aggregating from ${sourceTable} to ${targetTable} for interval ${new Date(startTime).toISOString()} - ${new Date(endTime).toISOString()}`);
-    console.log(`Found ${rows.length} rows to aggregate.`);
+    console.log(`Aggregating from ${sourceTable} to ${targetTable} for interval ${new Date(startTime).toUTCString()} to ${new Date(endTime).toUTCString()}`);
+    console.log(`Found ${rows.length} row${rows.length == 1 ? '' : 's'} to aggregate.`);
     console.log('Rows:', rows);
   }
 
