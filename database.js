@@ -18,9 +18,9 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS totalsHourly ( -- Create the table to store hourly totals
     hourStart INTEGER PRIMARY KEY, -- Start of the hour (unix timestamp)
     onlineUsers INTEGER, -- Number of online users in that hour
-    versionTotals TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
-    browserTotals TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
-    osTotals TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
+    version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
+    browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
+    os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
     lastSeen INTEGER -- Timestamp of last hour (Unix Timestamp)
   )
 `).run();
@@ -31,9 +31,9 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS totalsDaily ( -- Create the table to store daily totals
     dayStart INTEGER PRIMARY KEY, -- Start of the day (unix timestamp)
     onlineUsers INTEGER, -- Number of online users in that day
-    versionTotals TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
-    browserTotals TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
-    osTotals TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
+    version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
+    browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
+    os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
     lastSeen INTEGER -- Timestamp of last day (Unix Timestamp)
   )
 `).run();
@@ -44,9 +44,9 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS totalsWeekly ( -- Create the table to store weekly totals
     weekStart INTEGER PRIMARY KEY, -- Start of the week (unix timestamp)
     onlineUsers INTEGER, -- Number of online users in that week
-    versionTotals TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
-    browserTotals TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
-    osTotals TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
+    version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
+    browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
+    os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
     lastSeen INTEGER -- Timestamp of last week (Unix Timestamp)
   )
 `).run();
@@ -57,9 +57,9 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS totalsMonthly ( -- Create the table to store months totals
     monthStart INTEGER PRIMARY KEY, -- Start of the month (unix timestamp)
     onlineUsers INTEGER, -- Number of online users in that month
-    versionTotals TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
-    browserTotals TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
-    osTotals TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
+    version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
+    browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
+    os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
     lastSeen INTEGER -- Timestamp of last month (Unix Timestamp)
   )
 `).run();
@@ -70,9 +70,9 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS totalsYearly ( -- Create the table to store years totals
     yearStart INTEGER PRIMARY KEY, -- Start of the year (unix timestamp)
     onlineUsers INTEGER, -- Number of online users in that year
-    versionTotals TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
-    browserTotals TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
-    osTotals TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
+    version TEXT, -- JSON string of version totals: {"1.0.0": 10, "1.1.0": 4, ...}
+    browser TEXT, -- JSON string of browser totals: {"Chrome": 10, "Firefox": 7, ...}
+    os TEXT, -- JSON string of OS totals: {"Windows": 1343, "Linux": 1, ...}
     lastSeen INTEGER -- Timestamp of last year (Unix Timestamp)
   )
 `).run();

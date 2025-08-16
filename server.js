@@ -126,13 +126,13 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
 
   // Store totals in the tageted table
   db.prepare(`
-    INSERT INTO ${targetTable} (${intervalStartCol}, onlineUsers, versionTotals, browserTotals, osTotals, lastSeen)
+    INSERT INTO ${targetTable} (${intervalStartCol}, onlineUsers, version, browser, os, lastSeen)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(${intervalStartCol}) DO UPDATE SET
       onlineUsers = excluded.onlineUsers,
-      versionTotals = excluded.versionTotals,
-      browserTotals = excluded.browserTotals,
-      osTotals = excluded.osTotals,
+      version = excluded.version,
+      browser = excluded.browser,
+      os = excluded.os,
       lastSeen = excluded.lastSeen
   `).run(
     startTime,
