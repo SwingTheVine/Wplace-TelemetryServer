@@ -128,7 +128,6 @@ fastify.post('/heartbeat', async (request, reply) => {
  * @param {string} intervalStartCol - column name in target table for start timestamp
  */
 function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalStartCol, maxRows = undefined, wipeSource = true) {
-  // New signature: aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalStartCol, maxRows, wipeSource)
   // maxRows: maximum number of rows to keep in targetTable (rolling window)
   // wipeSource: if true, delete source data after aggregation
 
@@ -295,36 +294,41 @@ fastify.get('/graph/hourly', async (request, reply) => {
       type: 'line',
       data: {
         labels,
-        datasets: [{
-          label: 'Users',
-          data: dataOnlineUsers, // Display number of online users
-          borderColor: 'rgba(75, 192, 192, 1)',
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          fill: true,
-        },
-        {
-          label: 'Versions',
-          data: uniqueVersions, // Display number of unique versions
-          borderColor: 'rgba(153, 102, 255, 1)',
-          backgroundColor: 'rgba(153, 102, 255, 0.2)',
-          fill: true,
-        },
-        {
-          label: 'Browsers',
-          data: uniqueBrowsers, // Display number of unique browsers
-          borderColor: 'rgba(255, 159, 64, 1)',
-          backgroundColor: 'rgba(255, 159, 64, 0.2)',
-          fill: true,
-        },
-        {
-          label: 'Operating Systems',
-          data: uniqueOS, // Display number of unique OSes
-          borderColor: 'rgba(255, 99, 132, 1)',
-          backgroundColor: 'rgba(255, 99, 132, 0.2)',
-          fill: true,
-        }
-      ],
-    },
+        datasets: [
+          {
+            label: 'Users',
+            data: dataOnlineUsers,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+            yAxisID: 'y2', // Assign to second Y-axis
+          },
+          {
+            label: 'Versions',
+            data: uniqueVersions,
+            borderColor: 'rgba(153, 102, 255, 1)',
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            fill: true,
+            yAxisID: 'y', // Default Y-axis
+          },
+          {
+            label: 'Browsers',
+            data: uniqueBrowsers,
+            borderColor: 'rgba(255, 159, 64, 1)',
+            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            fill: true,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Operating Systems',
+            data: uniqueOS,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+            yAxisID: 'y',
+          }
+        ]
+      },
       options: {
         responsive: false,
         scales: {
@@ -342,8 +346,26 @@ fastify.get('/graph/hourly', async (request, reply) => {
           y: {
             title: {
               display: true,
+              text: 'Statistics',
+              color: '#ffffff'
+            },
+            position: 'left',
+            ticks: {
+              color: '#ffffff',
+              callback: function(value) {
+                return Number.isInteger(value) ? value : '';
+              }
+            }
+          },
+          y2: {
+            title: {
+              display: true,
               text: 'Online Users',
               color: '#ffffff'
+            },
+            position: 'right',
+            grid: {
+              drawOnChartArea: false // Only want grid lines for one axis
             },
             ticks: {
               color: '#ffffff',
@@ -356,7 +378,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
         plugins: {
           legend: {
             labels: {
-              color: '#ffffff' // legend text color
+              color: '#ffffff'
             }
           }
         }
@@ -367,7 +389,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
           const ctx = chart.ctx;
           ctx.save();
           ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = '#2450A4'; // chart background color
+          ctx.fillStyle = '#2450A4';
           ctx.fillRect(0, 0, chart.width, chart.height);
           ctx.restore();
         }

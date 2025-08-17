@@ -33,7 +33,7 @@ The server is hosted by ForceHost.
 * SwingTheVine - The owner of Blue Marble
 * Doerak - A founder & co-owner of ForceHost
 * TheMG - A founder & co-owner of ForceHost
-* Nagol - An executive of ForceHost and a **moderator of wplace**
+* Nagol - An executive of ForceHost
 
 ### What information can identify me?
 At the very ***most***, the information can be used to discover:
