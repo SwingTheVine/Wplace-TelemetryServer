@@ -4,6 +4,8 @@
 # Works even if chmod/x flag fails
 # ============================================
 
+pwd
+
 # Load environment variables from .env if present
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
@@ -19,6 +21,8 @@ CLOUDFLARED_LOG=cloudflared.log
 CLOUDFLARED_CMD="$CLOUDFLARED_DIR/cloudflared tunnel --config $CLOUDFLARED_DIR/config.yml run"
 
 echo "Starting Cloudflared tunnel..."
+chmod +x ./cloudflared/cloudflared
+ls -l /home/container/cloudflared
 if [ "$DEBUG" = "true" ]; then
   # Use sh to run binary in debug mode (stdout/stderr to console)
   sh -c "$CLOUDFLARED_CMD" &

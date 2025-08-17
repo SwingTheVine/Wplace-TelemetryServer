@@ -1,3 +1,4 @@
+console.log("Starting node server...");
 require('dotenv').config();
 const fs = require('fs');
 const Fastify = require('fastify');
