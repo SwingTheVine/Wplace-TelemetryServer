@@ -306,7 +306,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
           {
             label: 'Versions',
             data: uniqueVersions,
-            borderColor: 'rgba(153, 102, 255, 1)',
+            borderColor: 'rgba(153, 127, 204, 1)',
             backgroundColor: 'rgba(153, 102, 255, 0.2)',
             fill: true,
             yAxisID: 'y2', // Default Y-axis
@@ -361,8 +361,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
               }
             },
             grid: {
-              color: '#4496ed',
-              lineWidth: 2
+              color: '#29588a'
             }
           },
           y2: {
@@ -380,8 +379,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             },
             grid: {
               drawOnChartArea: true, // Disable if you only want grid lines for one axis
-              color: '#4496ed',
-              lineWidth: 2
+              color: '#29588a'
             }
           }
         },
