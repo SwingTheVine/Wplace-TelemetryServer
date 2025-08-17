@@ -410,3 +410,5 @@ fastify.get('/graph/hourly', async (request, reply) => {
 // Start server
 fastify.listen({ port: fastifyPort, host: '0.0.0.0' })
   .then(() => console.log(`Fastify running on port ${fastifyPort}`));
+
+console.log('Server started successfully!'); 

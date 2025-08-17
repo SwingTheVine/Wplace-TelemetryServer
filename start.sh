@@ -22,10 +22,9 @@ CLOUDFLARED_CMD="$CLOUDFLARED_DIR/cloudflared tunnel --config $CLOUDFLARED_DIR/c
 
 echo "Starting Cloudflared tunnel..."
 chmod +x ./cloudflared/cloudflared
-ls -l /home/container/cloudflared
 if [ "$DEBUG" = "true" ]; then
-  # Use sh to run binary in debug mode (stdout/stderr to console)
-  sh -c "$CLOUDFLARED_CMD" &
+  ls -l /home/container/cloudflared # Output the contents of the cloudflared directory
+  sh -c "$CLOUDFLARED_CMD" & # Use sh to run binary in debug mode (stdout/stderr to console)
 else
   # Run in background and log output to file
   sh -c "$CLOUDFLARED_CMD" >> "$CLOUDFLARED_LOG" 2>&1 &
@@ -35,6 +34,8 @@ echo "Cloudflared PID: $CLOUDFLARED_PID"
 
 # Wait a few seconds to let Cloudflared initialize
 sleep 3
+
+echo "Assume the Cloudflared tunnel is established."
 
 # 2️⃣ Start Node.js server
 if [ "$DEBUG" = "true" ]; then
