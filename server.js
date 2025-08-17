@@ -301,7 +301,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             fill: true,
-            yAxisID: 'y2', // Assign to second Y-axis
+            yAxisID: 'y', // Assign to second Y-axis
           },
           {
             label: 'Versions',
@@ -309,7 +309,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             borderColor: 'rgba(153, 102, 255, 1)',
             backgroundColor: 'rgba(153, 102, 255, 0.2)',
             fill: true,
-            yAxisID: 'y', // Default Y-axis
+            yAxisID: 'y2', // Default Y-axis
           },
           {
             label: 'Browsers',
@@ -317,7 +317,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             borderColor: 'rgba(255, 159, 64, 1)',
             backgroundColor: 'rgba(255, 159, 64, 0.2)',
             fill: true,
-            yAxisID: 'y',
+            yAxisID: 'y2',
           },
           {
             label: 'Operating Systems',
@@ -325,7 +325,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             borderColor: 'rgba(255, 99, 132, 1)',
             backgroundColor: 'rgba(255, 99, 132, 0.2)',
             fill: true,
-            yAxisID: 'y',
+            yAxisID: 'y2',
           }
         ]
       },
@@ -341,12 +341,16 @@ fastify.get('/graph/hourly', async (request, reply) => {
             ticks: {
               maxTicksLimit: 24,
               color: '#ffffff'
+            },
+            grid: {
+              color: '#98cff8',
+              lineWidth: 2
             }
           },
           y: {
             title: {
               display: true,
-              text: 'Statistics',
+              text: 'Online Users',
               color: '#ffffff'
             },
             position: 'left',
@@ -355,23 +359,29 @@ fastify.get('/graph/hourly', async (request, reply) => {
               callback: function(value) {
                 return Number.isInteger(value) ? value : '';
               }
+            },
+            grid: {
+              color: '#4496ed',
+              lineWidth: 2
             }
           },
           y2: {
             title: {
               display: true,
-              text: 'Online Users',
+              text: 'Computer Statistics',
               color: '#ffffff'
             },
             position: 'right',
-            grid: {
-              drawOnChartArea: false // Only want grid lines for one axis
-            },
             ticks: {
               color: '#ffffff',
               callback: function(value) {
                 return Number.isInteger(value) ? value : '';
               }
+            },
+            grid: {
+              drawOnChartArea: true, // Disable if you only want grid lines for one axis
+              color: '#4496ed',
+              lineWidth: 2
             }
           }
         },
