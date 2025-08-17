@@ -16,10 +16,10 @@ const intervalDelivery = parseInt(process.env.EXPECTED_DELIVERY_INTERVAL_MINUTES
 // Creates fastify with "rules" (hooks, plugins, registers, etc)
 const fastify = Fastify({
   logger: isDebug ? { level: 'debug' } : false,
-  https: {
-    key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/privkey.pem'),
-    cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/fullchain.pem'),
-  }
+  // https: {
+  //   key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/privkey.pem'),
+  //   cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/fullchain.pem'),
+  // }
 });
 // Register rate limiting to prevent abuse
 // This will limit each IP to 3 requests every 30 minutes
@@ -126,7 +126,11 @@ fastify.post('/heartbeat', async (request, reply) => {
  * @param {number} endTime - end of interval
  * @param {string} intervalStartCol - column name in target table for start timestamp
  */
-function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalStartCol) {
+function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalStartCol, maxRows = undefined, wipeSource = true) {
+  // New signature: aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalStartCol, maxRows, wipeSource)
+  // maxRows: maximum number of rows to keep in targetTable (rolling window)
+  // wipeSource: if true, delete source data after aggregation
+
   const rows = db.prepare(`
     SELECT version, browser, os
     FROM ${sourceTable}
@@ -150,7 +154,7 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
     if (row.os) osTotals[row.os] = (osTotals[row.os] || 0) + 1;
   }
 
-  // Store totals in the tageted table
+  // Store totals in the target table
   db.prepare(`
     INSERT INTO ${targetTable} (${intervalStartCol}, onlineUsers, version, browser, os, lastSeen)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -169,11 +173,29 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
     endTime
   );
 
-  // Delete aggregated raw data
-  db.prepare(`
-    DELETE FROM ${sourceTable}
-    WHERE lastSeen >= ? AND lastSeen < ?
-  `).run(startTime, endTime);
+  // Rolling window: keep only maxRows most recent rows
+  if (maxRows !== undefined && maxRows > 0) {
+    const count = db.prepare(`SELECT COUNT(*) as cnt FROM ${targetTable}`).get().cnt;
+    if (count > maxRows) {
+      // Delete oldest rows
+      db.prepare(`
+        DELETE FROM ${targetTable}
+        WHERE ${intervalStartCol} IN (
+          SELECT ${intervalStartCol} FROM ${targetTable}
+          ORDER BY ${intervalStartCol} ASC
+          LIMIT ?
+        )
+      `).run(count - maxRows);
+    }
+  }
+
+  // Optionally delete aggregated raw data
+  if (wipeSource) {
+    db.prepare(`
+      DELETE FROM ${sourceTable}
+      WHERE lastSeen >= ? AND lastSeen < ?
+    `).run(startTime, endTime);
+  }
 }
 
 // Hourly
@@ -181,7 +203,7 @@ cron.schedule('0 * * * *', () => {
   console.log(`Hourly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 60 * 60 * 1000;
-  aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart');
+  aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart', 24, true); // 24-hour rolling, wipe source
 });
 
 // Daily
@@ -189,7 +211,7 @@ cron.schedule('0 0 * * *', () => {
   console.log(`Daily job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 24 * 60 * 60 * 1000;
-  aggregateTotals('totalsHourly', 'totalsDaily', startTime, endTime, 'dayStart');
+  aggregateTotals('totalsHourly', 'totalsDaily', startTime, endTime, 'dayStart', 7, false); // 7-day rolling, keep source
 });
 
 // Weekly (Sunday midnight)
@@ -197,7 +219,7 @@ cron.schedule('0 0 * * 0', () => {
   console.log(`Weekly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 7 * 24 * 60 * 60 * 1000;
-  aggregateTotals('totalsDaily', 'totalsWeekly', startTime, endTime, 'weekStart');
+  aggregateTotals('totalsDaily', 'totalsWeekly', startTime, endTime, 'weekStart', 4, false); // 4-week rolling, keep source
 });
 
 // Monthly (1st of each month)
@@ -207,7 +229,7 @@ cron.schedule('0 0 1 * *', () => {
   const d = new Date();
   d.setMonth(d.getMonth() - 1);
   const startTime = d.getTime();
-  aggregateTotals('totalsWeekly', 'totalsMonthly', startTime, endTime, 'monthStart');
+  aggregateTotals('totalsWeekly', 'totalsMonthly', startTime, endTime, 'monthStart', 12, false); // 12-month rolling, keep source
 });
 
 // Yearly (Jan 1st)
@@ -217,7 +239,7 @@ cron.schedule('0 0 1 1 *', () => {
   const d = new Date();
   d.setFullYear(d.getFullYear() - 1);
   const startTime = d.getTime();
-  aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart');
+  aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart', 25, false); // 25-year rolling, keep source
 });
 
 const width = 800; // Width of the chart
