@@ -290,6 +290,8 @@ fastify.get('/graph/hourly', async (request, reply) => {
     const uniqueBrowsers = dataBrowser.map(obj => Object.keys(obj).length);
     const uniqueOS = dataOs.map(obj => Object.keys(obj).length);
 
+    const gridLineColor = '#3690EA';
+
     const chartConfig = {
       type: 'line',
       data: {
@@ -299,15 +301,15 @@ fastify.get('/graph/hourly', async (request, reply) => {
             label: 'Users',
             data: dataOnlineUsers,
             borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            backgroundColor: 'rgba(75, 192, 192, 0.15)',
             fill: true,
             yAxisID: 'y', // Assign to second Y-axis
           },
           {
             label: 'Versions',
             data: uniqueVersions,
-            borderColor: 'rgba(153, 127, 204, 1)',
-            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: '#E866C5',
+            backgroundColor: 'rgba(153, 102, 255, 0.15)',
             fill: true,
             yAxisID: 'y2', // Default Y-axis
           },
@@ -315,7 +317,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             label: 'Browsers',
             data: uniqueBrowsers,
             borderColor: 'rgba(255, 159, 64, 1)',
-            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            backgroundColor: 'rgba(255, 159, 64, 0.15)',
             fill: true,
             yAxisID: 'y2',
           },
@@ -323,7 +325,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             label: 'Operating Systems',
             data: uniqueOS,
             borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            backgroundColor: 'rgba(255, 99, 132, 0.15)',
             fill: true,
             yAxisID: 'y2',
           }
@@ -343,7 +345,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
               color: '#ffffff'
             },
             grid: {
-              color: '#98cff8',
+              color: gridLineColor,
               lineWidth: 2
             }
           },
@@ -361,7 +363,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
               }
             },
             grid: {
-              color: '#29588a'
+              color: gridLineColor
             }
           },
           y2: {
@@ -379,7 +381,7 @@ fastify.get('/graph/hourly', async (request, reply) => {
             },
             grid: {
               drawOnChartArea: true, // Disable if you only want grid lines for one axis
-              color: '#29588a'
+              color: gridLineColor
             }
           }
         },
