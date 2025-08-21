@@ -327,6 +327,7 @@ fastify.get('/chart/hourly', async (request, reply) => {
   }
 
   if (serveThisChart) {
+    reply.header('Cache-Control', 'max-age=60, must-revalidate'); // Cache for 60 seconds
     reply.type('image/png').send(serveThisChart);
   } else {
     reply.status(503).send({ error: 'Chart not available yet' });
