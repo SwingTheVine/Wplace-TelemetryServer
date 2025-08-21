@@ -104,6 +104,7 @@ let cachedChartHourlyMain = null; // Buffer for the cached chart image main
 let cachedChartHourlyVersion = null; // Buffer for the cached chart image version
 let cachedChartHourlyBrowser = null; // Buffer for the cached chart image browser
 let cachedChartHourlyOS = null; // Buffer for the cached chart image OS
+let cachedChartHourlyStats = null; // Buffer for the cached stats chart image
 
 async function generateHourlyChart() {
   try {
@@ -150,7 +151,7 @@ async function generateHourlyChart() {
       const slice = arr.slice(start, idx + 1);
       return Math.round(slice.reduce((a, b) => a + b, 0) / slice.length);
     });
-    
+
     console.log(`Ceiling Online Users: ${ceilingOnlineUsers}`);
     console.log(`Floor Online Users: ${floorOnlineUsers}`);
     console.log(`Rolling Average Online Users: ${rollingAvgOnlineUsers}`);
@@ -200,12 +201,14 @@ async function generateHourlyChart() {
     const hourlyChartConfigVersion = generateHourlyChartConfigPie('Version Distribution', combinedVersionTotals.labels, combinedVersionTotals.data, uniqueVersionTotalsColors);
     const hourlyChartConfigBrowser = generateHourlyChartConfigPie('Browser Distribution', combinedBrowserTotals.labels, combinedBrowserTotals.data, uniqueBrowserTotalsColors);
     const hourlyChartConfigOS = generateHourlyChartConfigPie('OS Distribution', combinedOSTotals.labels, combinedOSTotals.data, uniqueOSTotalsColors);
+    const hourlyChartConfigStats = generateHourlyChartConfigStats(labels, dataOnlineUsers, ceilingOnlineUsers, floorOnlineUsers, rollingAvgOnlineUsers);
 
     // Save the new charts to cache
     cachedChartHourlyMain = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigMain);
     cachedChartHourlyVersion = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigVersion);
     cachedChartHourlyBrowser = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigBrowser);
     cachedChartHourlyOS = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigOS);
+    cachedChartHourlyStats = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigStats);
   } catch (exception) {
     console.error('Error generating chart:', exception);
     cachedChartHourlyMain = null;
@@ -310,6 +313,9 @@ fastify.get('/chart/hourly', async (request, reply) => {
     case 'os':
       // Handle OS chart request
       serveThisChart = cachedChartHourlyOS;
+      break;
+    case 'stats':
+      serveThisChart = cachedChartHourlyStats;
       break;
     case undefined:
       serveThisChart = cachedChartHourlyMain; // Default to hourly line chart
@@ -462,6 +468,110 @@ function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, 
           grid: {
             drawOnChartArea: true,
             color: gridLineColor
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#ffffff'
+          }
+        },
+        datalabels: {
+          display: false // Disables data labels on the points
+        }
+      }
+    },
+    plugins: [{
+      id: 'customBackgroundColor',
+      beforeDraw: (chart) => {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#2450A4';
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      }
+    }]
+  };
+}
+
+function generateHourlyChartConfigStats(labels, dataOnlineUsers, ceiling, floor, rollingAvg) {
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Online Users',
+          data: dataOnlineUsers,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.15)',
+          fill: true,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Ceiling (Max)',
+          data: ceiling,
+          borderColor: '#FFD700',
+          borderDash: [8, 4],
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Floor (Min)',
+          data: floor,
+          borderColor: '#00FF00',
+          borderDash: [8, 4],
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y',
+        },
+        {
+          label: '24h Rolling Avg',
+          data: rollingAvg,
+          borderColor: '#FF8C00',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y',
+        }
+      ]
+    },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Time',
+            color: '#ffffff'
+          },
+          ticks: {
+            maxTicksLimit: 24,
+            color: '#ffffff'
+          },
+          grid: {
+            color: '#3690EA',
+            lineWidth: 2
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Online Users',
+            color: '#ffffff'
+          },
+          position: 'left',
+          ticks: {
+            color: '#ffffff',
+            callback: function(value) {
+              return Number.isInteger(value) ? value : '';
+            }
+          },
+          grid: {
+            color: '#3690EA'
           }
         }
       },
