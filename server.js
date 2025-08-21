@@ -440,8 +440,9 @@ fastify.get('/chart/hourly', async (request, reply) => {
         break;
       default:
         reply.status(400).send({ error: 'Invalid chart type' });
+        break;
     }
-});
+}});
 
 // Start server
 fastify.listen({ port: fastifyPort, host: '0.0.0.0' })
