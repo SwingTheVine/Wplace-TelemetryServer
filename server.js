@@ -5,7 +5,10 @@ const Fastify = require('fastify');
 const validator = require('validator');
 const db = require('./database'); // Import the database
 const cron = require('node-cron');
+
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+const ChartDataLabels = require('chartjs-plugin-datalabels');
+ChartJSNodeCanvas.registerPlugin(ChartDataLabels); // Register the data labels plugin
 
 // Configuration from enviroment variables and their defaults
 const isDebug = process.env.DEBUG === 'true';
@@ -155,153 +158,9 @@ async function generateHourlyChart() {
 
     const gridLineColor = '#3690EA';
 
-    const hourlyChartConfigMain = {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Users',
-            data: dataOnlineUsers,
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.15)',
-            fill: true,
-            yAxisID: 'y',
-          },
-          {
-            label: 'Versions',
-            data: uniqueVersions,
-            borderColor: '#E866C5',
-            backgroundColor: 'rgba(153, 102, 255, 0.15)',
-            fill: true,
-            yAxisID: 'y2',
-          },
-          {
-            label: 'Browsers',
-            data: uniqueBrowsers,
-            borderColor: 'rgba(255, 159, 64, 1)',
-            backgroundColor: 'rgba(255, 159, 64, 0.15)',
-            fill: true,
-            yAxisID: 'y2',
-          },
-          {
-            label: 'Operating Systems',
-            data: uniqueOS,
-            borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.15)',
-            fill: true,
-            yAxisID: 'y2',
-          }
-        ]
-      },
-      options: {
-        responsive: false,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Time',
-              color: '#ffffff'
-            },
-            ticks: {
-              maxTicksLimit: 24,
-              color: '#ffffff'
-            },
-            grid: {
-              color: gridLineColor,
-              lineWidth: 2
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Online Users',
-              color: '#ffffff'
-            },
-            position: 'left',
-            ticks: {
-              color: '#ffffff',
-              callback: function(value) {
-                return Number.isInteger(value) ? value : '';
-              }
-            },
-            grid: {
-              color: gridLineColor
-            }
-          },
-          y2: {
-            title: {
-              display: true,
-              text: 'Computer Statistics',
-              color: '#ffffff'
-            },
-            position: 'right',
-            ticks: {
-              color: '#ffffff',
-              callback: function(value) {
-                return Number.isInteger(value) ? value : '';
-              }
-            },
-            grid: {
-              drawOnChartArea: true,
-              color: gridLineColor
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            labels: {
-              color: '#ffffff'
-            }
-          }
-        }
-      },
-      plugins: [{
-        id: 'customBackgroundColor',
-        beforeDraw: (chart) => {
-          const ctx = chart.ctx;
-          ctx.save();
-          ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = '#2450A4';
-          ctx.fillRect(0, 0, chart.width, chart.height);
-          ctx.restore();
-        }
-      }]
-    };
+    const hourlyChartConfigMain = generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS);
 
-    const hourlyChartConfigVersion = {
-      type: 'pie',
-      data: {
-        labels: uniqueVersionTotalsLabels,
-        datasets: [{
-          label: 'Version Distribution',
-          data: uniqueVersionTotalsData,
-          backgroundColor: uniqueVersionTotalsColors,
-          borderColor: '#fff',
-          borderWidth: 2
-        }]
-      },
-      options: {
-        plugins: {
-          legend: {
-            labels: {
-              color: '#ffffff'
-            }
-          }
-        }
-      },
-      plugins: [{
-        id: 'customBackgroundColor',
-        beforeDraw: (chart) => {
-          const ctx = chart.ctx;
-          ctx.save();
-          ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = '#2450A4';
-          ctx.fillRect(0, 0, chart.width, chart.height);
-          ctx.restore();
-        }
-      }]
-    };
+    const hourlyChartConfigVersion = generateHourlyChartConfigPie('Version Distribution', uniqueVersionTotalsLabels, uniqueVersionTotalsData, uniqueVersionTotalsColors);
 
     // Save the new charts to cache
     cachedChartHourlyMain = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigMain);
@@ -466,4 +325,168 @@ function generateDistinctColors(n) {
     colors.push(`hsl(${hue}, 80%, 60%)`);
   }
   return colors;
+}
+
+function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS) {
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Users',
+          data: dataOnlineUsers,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.15)',
+          fill: true,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Versions',
+          data: uniqueVersions,
+          borderColor: '#E866C5',
+          backgroundColor: 'rgba(153, 102, 255, 0.15)',
+          fill: true,
+          yAxisID: 'y2',
+        },
+        {
+          label: 'Browsers',
+          data: uniqueBrowsers,
+          borderColor: 'rgba(255, 159, 64, 1)',
+          backgroundColor: 'rgba(255, 159, 64, 0.15)',
+          fill: true,
+          yAxisID: 'y2',
+        },
+        {
+          label: 'Operating Systems',
+          data: uniqueOS,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.15)',
+          fill: true,
+          yAxisID: 'y2',
+        }
+      ]
+    },
+    options: {
+      responsive: false,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Time',
+            color: '#ffffff'
+          },
+          ticks: {
+            maxTicksLimit: 24,
+            color: '#ffffff'
+          },
+          grid: {
+            color: gridLineColor,
+            lineWidth: 2
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Online Users',
+            color: '#ffffff'
+          },
+          position: 'left',
+          ticks: {
+            color: '#ffffff',
+            callback: function(value) {
+              return Number.isInteger(value) ? value : '';
+            }
+          },
+          grid: {
+            color: gridLineColor
+          }
+        },
+        y2: {
+          title: {
+            display: true,
+            text: 'Computer Statistics',
+            color: '#ffffff'
+          },
+          position: 'right',
+          ticks: {
+            color: '#ffffff',
+            callback: function(value) {
+              return Number.isInteger(value) ? value : '';
+            }
+          },
+          grid: {
+            drawOnChartArea: true,
+            color: gridLineColor
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#ffffff'
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'customBackgroundColor',
+      beforeDraw: (chart) => {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#2450A4';
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      }
+    }]
+  };
+}
+
+function generateHourlyChartConfigPie(title, labels, data, colors) {
+  return {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: title,
+        data: data,
+        backgroundColor: colors,
+        borderColor: '#fff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: '#ffffff' } },
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold' },
+          formatter: function(value, context) {
+            // Only show label if slice is at least 5% of total
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percent = value / total;
+            return percent > 0.05 ? context.chart.data.labels[context.dataIndex] : '';
+          }
+        },
+        title: {
+          display: true,
+          text: title,
+          color: '#ffffff',
+          font: { size: 22 }
+        }
+      }
+    },
+    plugins: [{
+      id: 'customBackgroundColor',
+      beforeDraw: (chart) => {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#2450A4';
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      }
+    }]
+  };
 }
