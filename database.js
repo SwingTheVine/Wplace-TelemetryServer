@@ -13,17 +13,6 @@ db.prepare(`
   )
 `).run();
 
-try {
-  db.prepare('ALTER TABLE totalsHourly ADD COLUMN rollingAvgOnlineUsers INTEGER DEFAULT NULL').run();
-  console.log('Column added.');
-} catch (err) {
-  if (err.message.includes('duplicate column name')) {
-    console.log('Column rollingAvgOnlineUsers already exists.');
-  } else {
-    throw err;
-  }
-}
-
 // Creates totals table for hours if it doesn't exist
 // If the server restarts, the hours won't be spaced evenly
 db.prepare(`
