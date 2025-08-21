@@ -84,42 +84,6 @@ async function processQueue() {
 // Or in other words, the queue is always being processed, and the queue unblocks the thread every X miliseconds
 setInterval(processQueue, 10);
 
-// Heartbeat endpoint
-fastify.post('/heartbeat', async (request, reply) => {
-
-  if (isDebug) {console.log(`Received heartbeat from ${request.ip} or ${request.headers['x-forwarded-for']}:`, request.body);}
-
-  // Validate the request body
-  const { uuid, version, browser, os } = request.body || {};
-  if (!uuid || typeof uuid !== 'string') return reply.status(400).send({ error: 'Invalid UUID' });
-  if (uuid.length > inputCharLimit) return reply.status(400).send({ error: 'UUID too long' });
-  if (version && typeof version !== 'string') return reply.status(400).send({ error: 'Invalid version' });
-  if (version.length > inputCharLimit) return reply.status(400).send({ error: 'Version too long' });
-  if (browser && typeof browser !== 'string') return reply.status(400).send({ error: 'Invalid browser' });
-  if (browser.length > inputCharLimit) return reply.status(400).send({ error: 'Browser too long' });
-  if (os && typeof os !== 'string') return reply.status(400).send({ error: 'Invalid OS' });
-  if (os.length > inputCharLimit) return reply.status(400).send({ error: 'OS too long' });
-
-  // Sanitize inputs
-  const safeUuid = validator.escape(uuid);
-  const safeVersion = version ? validator.escape(version) : null;
-  const safeBrowser = browser ? validator.escape(browser) : null;
-  const safeOs = os ? validator.escape(os) : null;
-
-  // This will allow us to track online users and their last seem time.
-  const now = Date.now();
-  writeQueue.push({
-    uuid: safeUuid,
-    version: safeVersion,
-    browser: safeBrowser,
-    os: safeOs,
-    lastSeen: now
-  });
-  
-  return { status: 'ok' };
-});
-
-
 
 // CHARTS
 
@@ -128,7 +92,10 @@ const width = 800; // Width of the chart
 const height = 400; // Height of the chart
 const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
-let cachedHourlyChart = null; // Buffer for the cached chart image
+let cachedChartHourlyMain = null; // Buffer for the cached chart image main
+let cachedChartHourlyVersion = null; // Buffer for the cached chart image version
+let cachedChartHourlyBrowser = null; // Buffer for the cached chart image browser
+let cachedChartHourlyOS = null; // Buffer for the cached chart image OS
 
 async function generateHourlyChart() {
   try {
@@ -173,9 +140,18 @@ async function generateHourlyChart() {
     const uniqueBrowsers = dataBrowser.map(obj => Object.keys(obj).length);
     const uniqueOS = dataOs.map(obj => Object.keys(obj).length);
 
+    // Aggregate all version counts across all hours.
+    // This will be used to display the number of each different version.
+    const uniqueVersionTotals = {};
+    for (const hourObj of dataVersion) {
+      for (const [version, count] of Object.entries(hourObj)) {
+        uniqueVersionTotals[version] = (uniqueVersionTotals[version] || 0) + count;
+      }
+    }
+
     const gridLineColor = '#3690EA';
 
-    const chartConfig = {
+    const hourlyChartConfigMain = {
       type: 'line',
       data: {
         labels,
@@ -289,10 +265,48 @@ async function generateHourlyChart() {
       }]
     };
 
-    cachedHourlyChart = await chartJSNodeCanvas.renderToBuffer(chartConfig);
+    const hourlyChartConfigVersion = {
+      type: 'pie',
+      data: {
+        labels: Object.keys(uniqueVersionTotals),
+        datasets: [{
+          label: 'Version Distribution',
+          data: Object.values(uniqueVersionTotals),
+          backgroundColor: [
+            '#E866C5', '#3690EA', '#FF9F40', '#FF6384', '#4BC0C0', '#9966FF', '#FFCD56'
+          ],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        plugins: {
+          legend: {
+            labels: {
+              color: '#ffffff'
+            }
+          }
+        }
+      },
+      plugins: [{
+        id: 'customBackgroundColor',
+        beforeDraw: (chart) => {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = '#2450A4';
+          ctx.fillRect(0, 0, chart.width, chart.height);
+          ctx.restore();
+        }
+      }]
+    };
+
+    // Save the new charts to cache
+    cachedChartHourlyMain = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigMain);
+    cachedChartHourlyVersion = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigVersion);
   } catch (exception) {
     console.error('Error generating chart:', exception);
-    cachedHourlyChart = null;
+    cachedChartHourlyMain = null;
   }
 }
 // Generate once at startup
@@ -355,13 +369,78 @@ cron.schedule('0 0 1 1 *', () => {
   aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart', 25, false); // 25-year rolling, keep source
 });
 
+
+
+
+// ENDPOINTS
+
+
+
+
+
+// Heartbeat endpoint
+fastify.post('/heartbeat', async (request, reply) => {
+
+  if (isDebug) {console.log(`Received heartbeat from ${request.ip} or ${request.headers['x-forwarded-for']}:`, request.body);}
+
+  // Validate the request body
+  const { uuid, version, browser, os } = request.body || {};
+  if (!uuid || typeof uuid !== 'string') return reply.status(400).send({ error: 'Invalid UUID' });
+  if (uuid.length > inputCharLimit) return reply.status(400).send({ error: 'UUID too long' });
+  if (version && typeof version !== 'string') return reply.status(400).send({ error: 'Invalid version' });
+  if (version.length > inputCharLimit) return reply.status(400).send({ error: 'Version too long' });
+  if (browser && typeof browser !== 'string') return reply.status(400).send({ error: 'Invalid browser' });
+  if (browser.length > inputCharLimit) return reply.status(400).send({ error: 'Browser too long' });
+  if (os && typeof os !== 'string') return reply.status(400).send({ error: 'Invalid OS' });
+  if (os.length > inputCharLimit) return reply.status(400).send({ error: 'OS too long' });
+
+  // Sanitize inputs
+  const safeUuid = validator.escape(uuid);
+  const safeVersion = version ? validator.escape(version) : null;
+  const safeBrowser = browser ? validator.escape(browser) : null;
+  const safeOs = os ? validator.escape(os) : null;
+
+  // This will allow us to track online users and their last seem time.
+  const now = Date.now();
+  writeQueue.push({
+    uuid: safeUuid,
+    version: safeVersion,
+    browser: safeBrowser,
+    os: safeOs,
+    lastSeen: now
+  });
+  
+  return { status: 'ok' };
+});
+
+
 // Endpoint to get hourly totals as a chart
 fastify.get('/chart/hourly', async (request, reply) => {
-  if (cachedHourlyChart) {
-    reply.type('image/png').send(cachedHourlyChart);
+  if (!request.query?.type) {
+    if (cachedChartHourlyMain) {
+      reply.type('image/png').send(cachedChartHourlyMain);
+    } else {
+      reply.status(503).send({ error: 'Chart not available yet' });
+    }
   } else {
-    reply.status(503).send({ error: 'Chart not available yet' });
-  }
+
+    switch (request.query.type) {
+      case 'version': // Handle version chart request
+        if (cachedChartHourlyMain) {
+          reply.type('image/png').send(cachedChartHourlyMain);
+        } else {
+          reply.status(503).send({ error: 'Chart not available yet' });
+        }
+        break;
+      case 'browser':
+        // Handle browser chart request
+        break;
+      case 'os':
+        // Handle OS chart request
+        break;
+      default:
+        reply.status(400).send({ error: 'Invalid chart type' });
+    }
 });
 
 // Start server
