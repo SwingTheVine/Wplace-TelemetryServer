@@ -124,6 +124,9 @@ fastify.post('/heartbeat', async (request, reply) => {
 // CHARTS
 
 
+const width = 800; // Width of the chart
+const height = 400; // Height of the chart
+const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
 let cachedHourlyChart = null; // Buffer for the cached chart image
 
@@ -351,10 +354,6 @@ cron.schedule('0 0 1 1 *', () => {
   const startTime = d.getTime();
   aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart', 25, false); // 25-year rolling, keep source
 });
-
-const width = 800; // Width of the chart
-const height = 400; // Height of the chart
-const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
 // Endpoint to get hourly totals as a chart
 fastify.get('/chart/hourly', async (request, reply) => {
