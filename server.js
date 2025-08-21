@@ -8,7 +8,6 @@ const cron = require('node-cron');
 
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const ChartDataLabels = require('chartjs-plugin-datalabels');
-ChartJSNodeCanvas.registerPlugin(ChartDataLabels); // Register the data labels plugin
 
 // Configuration from enviroment variables and their defaults
 const isDebug = process.env.DEBUG === 'true';
@@ -93,7 +92,13 @@ setInterval(processQueue, 10);
 
 const width = 800; // Width of the chart
 const height = 400; // Height of the chart
-const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+const chartJSNodeCanvas = new ChartJSNodeCanvas({
+  width,
+  height,
+  plugins: {
+    modern: [ChartDataLabels]
+  }
+});
 
 let cachedChartHourlyMain = null; // Buffer for the cached chart image main
 let cachedChartHourlyVersion = null; // Buffer for the cached chart image version
