@@ -137,11 +137,19 @@ async function generateHourlyChart() {
     };
     rows.push(partialHour);
 
+    // Data
     const labels = rows.map(row => new Date(row.hourStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     const dataOnlineUsers = rows.map(row => row.onlineUsers);
     const dataVersion = rows.map(row => JSON.parse(row.version));
     const dataBrowser = rows.map(row => JSON.parse(row.browser));
     const dataOs = rows.map(row => JSON.parse(row.os));
+    const ceilingOnlineUsers = Array(dataOnlineUsers.length).fill(Math.max(...dataOnlineUsers));
+    const floorOnlineUsers = Array(dataOnlineUsers.length).fill(Math.min(...dataOnlineUsers));
+    const rollingAvgOnlineUsers = dataOnlineUsers.map((_, idx, arr) => {
+      const start = Math.max(0, idx - 23);
+      const slice = arr.slice(start, idx + 1);
+      return Math.round(slice.reduce((a, b) => a + b, 0) / slice.length);
+    });
 
     // Calculate unique counts for each hour
     const uniqueVersions = dataVersion.map(obj => Object.keys(obj).length);
@@ -216,48 +224,26 @@ cron.schedule('*/5 * * * *', () => {
 
 
 // Hourly
-// cron.schedule('0 * * * *', () => {
-//   console.log(`Hourly job at ${new Date().toUTCString()}`);
-//   const endTime = Date.now();
-//   const startTime = endTime - 60 * 60 * 1000;
-//   aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart', 0, true); // no rolling, wipe source
-// });
-
-// Daily
-cron.schedule('0 0 * * *', () => {
-  console.log(`Daily job at ${new Date().toUTCString()}`);
+cron.schedule('0 * * * *', () => {
+  console.log(`Hourly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
-  const startTime = endTime - 24 * 60 * 60 * 1000;
-  aggregateTotals('totalsHourly', 'totalsDaily', startTime, endTime, 'dayStart', 7, false); // 7-day rolling, keep source
+  const startTime = endTime - 60 * 60 * 1000;
+  aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart', 0, true); // no rolling, wipe source
+
+  // After aggregation, update rolling average for the latest hour
+  try {
+    // Get the last 24 hours (including the current hour)
+    const last24 = db.prepare('SELECT onlineUsers, hourStart FROM totalsHourly ORDER BY hourStart DESC LIMIT 24').all();
+    if (last24.length > 0) {
+      const avg = Math.round(last24.reduce((sum, row) => sum + row.onlineUsers, 0) / last24.length);
+      const latestHourStart = last24[0].hourStart;
+      db.prepare('UPDATE totalsHourly SET rollingAvgOnlineUsers = ? WHERE hourStart = ?').run(avg, latestHourStart);
+    }
+  } catch (err) {
+    console.error('Error updating rolling average:', err);
+  }
 });
 
-// Weekly (Sunday midnight)
-cron.schedule('0 0 * * 0', () => {
-  console.log(`Weekly job at ${new Date().toUTCString()}`);
-  const endTime = Date.now();
-  const startTime = endTime - 7 * 24 * 60 * 60 * 1000;
-  aggregateTotals('totalsDaily', 'totalsWeekly', startTime, endTime, 'weekStart', 4, false); // 4-week rolling, keep source
-});
-
-// Monthly (1st of each month)
-cron.schedule('0 0 1 * *', () => {
-  console.log(`Monthly job at ${new Date().toUTCString()}`);
-  const endTime = Date.now();
-  const d = new Date();
-  d.setMonth(d.getMonth() - 1);
-  const startTime = d.getTime();
-  aggregateTotals('totalsWeekly', 'totalsMonthly', startTime, endTime, 'monthStart', 12, false); // 12-month rolling, keep source
-});
-
-// Yearly (Jan 1st)
-cron.schedule('0 0 1 1 *', () => {
-  console.log(`Yearly job at ${new Date().toUTCString()}`);
-  const endTime = Date.now();
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - 1);
-  const startTime = d.getTime();
-  aggregateTotals('totalsMonthly', 'totalsYearly', startTime, endTime, 'yearStart', 25, false); // 25-year rolling, keep source
-});
 
 
 
