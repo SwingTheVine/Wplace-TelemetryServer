@@ -100,7 +100,7 @@ let cachedChartHourlyOS = null; // Buffer for the cached chart image OS
 async function generateHourlyChart() {
   try {
     // Get all hourly totals
-    const rows = db.prepare('SELECT * FROM totalsHourly ORDER BY hourStart ASC LIMIT 24').all();
+    const rows = db.prepare('SELECT * FROM totalsHourly ORDER BY hourStart DESC LIMIT 24').all().reverse();
 
     // Add partial hour data from heartbeats
     const now = Date.now();
@@ -148,6 +148,8 @@ async function generateHourlyChart() {
         uniqueVersionTotals[version] = (uniqueVersionTotals[version] || 0) + count;
       }
     }
+
+    const uniqueVersionTotalsColors = generateDistinctColors(versionLabels.length);
 
     const gridLineColor = '#3690EA';
 
@@ -272,9 +274,7 @@ async function generateHourlyChart() {
         datasets: [{
           label: 'Version Distribution',
           data: Object.values(uniqueVersionTotals),
-          backgroundColor: [
-            '#E866C5', '#3690EA', '#FF9F40', '#FF6384', '#4BC0C0', '#9966FF', '#FFCD56'
-          ],
+          backgroundColor: uniqueVersionTotalsColors,
           borderColor: '#fff',
           borderWidth: 2
         }]
@@ -446,3 +446,22 @@ fastify.listen({ port: fastifyPort, host: '0.0.0.0' })
   .then(() => console.log(`Fastify running on port ${fastifyPort}`));
 
 console.log('Server started successfully!'); 
+
+
+
+
+// HELPER FUNCTIONS
+
+
+
+
+
+function generateDistinctColors(n) {
+  const colors = [];
+  for (let i = 0; i < n; i++) {
+    // Evenly distribute hues, use full saturation and 60% lightness for vibrancy
+    const hue = Math.round((360 * i) / n);
+    colors.push(`hsl(${hue}, 80%, 60%)`);
+  }
+  return colors;
+}
