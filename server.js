@@ -156,15 +156,38 @@ async function generateHourlyChart() {
         uniqueVersionTotals[version] = (uniqueVersionTotals[version] || 0) + count;
       }
     }
+    // Aggregate all browser counts across all hours
+    const uniqueBrowserTotals = {};
+    for (const hourObj of dataBrowser) {
+      for (const [browser, count] of Object.entries(hourObj)) {
+        uniqueBrowserTotals[browser] = (uniqueBrowserTotals[browser] || 0) + count;
+      }
+    }
+    // Aggregate all OS counts across all hours
+    const uniqueOSTotals = {};
+    for (const hourObj of dataOs) {
+      for (const [os, count] of Object.entries(hourObj)) {
+        uniqueOSTotals[os] = (uniqueOSTotals[os] || 0) + count;
+      }
+    }
 
+    // Combined/Redacted Versions
     const combinedVersionTotals = combineSmallCounts(Object.keys(uniqueVersionTotals), Object.values(uniqueVersionTotals), 25*24);
     const uniqueVersionTotalsColors = generateDistinctColors(combinedVersionTotals.labels.length);
+    // Combined/Redacted Browsers
+    const combinedBrowserTotals = combineSmallCounts(Object.keys(uniqueBrowserTotals), Object.values(uniqueBrowserTotals), 25*24);
+    const uniqueBrowserTotalsColors = generateDistinctColors(combinedBrowserTotals.labels.length);
+    // Combined/Redacted OS
+    const combinedOSTotals = combineSmallCounts(Object.keys(uniqueOSTotals), Object.values(uniqueOSTotals), 25*24);
+    const uniqueOSTotalsColors = generateDistinctColors(combinedOSTotals.labels.length);
 
     const gridLineColor = '#3690EA';
 
+    // Generate the config files for the hourly charts
     const hourlyChartConfigMain = generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS, gridLineColor);
-
     const hourlyChartConfigVersion = generateHourlyChartConfigPie('Version Distribution', combinedVersionTotals.labels, combinedVersionTotals.data, uniqueVersionTotalsColors);
+    const hourlyChartConfigBrowser = generateHourlyChartConfigPie('Browser Distribution', combinedBrowserTotals.labels, combinedBrowserTotals.data, uniqueBrowserTotalsColors);
+    const hourlyChartConfigOS = generateHourlyChartConfigPie('OS Distribution', combinedOSTotals.labels, combinedOSTotals.data, uniqueOSTotalsColors);
 
     // Save the new charts to cache
     cachedChartHourlyMain = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigMain);
@@ -290,12 +313,14 @@ fastify.get('/chart/hourly', async (request, reply) => {
       break;
     case 'browser':
       // Handle browser chart request
+      serveThisChart = cachedChartHourlyBrowser;
       break;
     case 'os':
       // Handle OS chart request
+      serveThisChart = cachedChartHourlyOS;
       break;
     default:
-      serveThisChart = cachedChartHourlyMain;
+      serveThisChart = cachedChartHourlyMain; // Default to hourly line chart
       break;
   }
 
