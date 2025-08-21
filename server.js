@@ -150,6 +150,10 @@ async function generateHourlyChart() {
       const slice = arr.slice(start, idx + 1);
       return Math.round(slice.reduce((a, b) => a + b, 0) / slice.length);
     });
+    
+    console.log(`Ceiling Online Users: ${ceilingOnlineUsers}`);
+    console.log(`Floor Online Users: ${floorOnlineUsers}`);
+    console.log(`Rolling Average Online Users: ${rollingAvgOnlineUsers}`);
 
     // Calculate unique counts for each hour
     const uniqueVersions = dataVersion.map(obj => Object.keys(obj).length);
