@@ -192,6 +192,8 @@ async function generateHourlyChart() {
     // Save the new charts to cache
     cachedChartHourlyMain = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigMain);
     cachedChartHourlyVersion = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigVersion);
+    cachedChartHourlyBrowser = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigBrowser);
+    cachedChartHourlyOS = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigOS);
   } catch (exception) {
     console.error('Error generating chart:', exception);
     cachedChartHourlyMain = null;
