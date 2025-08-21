@@ -144,8 +144,8 @@ async function generateHourlyChart() {
     const dataVersion = rows.map(row => JSON.parse(row.version));
     const dataBrowser = rows.map(row => JSON.parse(row.browser));
     const dataOs = rows.map(row => JSON.parse(row.os));
-    const ceilingOnlineUsers = Array(dataOnlineUsers.length).fill(Math.max(...dataOnlineUsers));
-    const floorOnlineUsers = Array(dataOnlineUsers.length).fill(Math.min(...dataOnlineUsers));
+    const ceilingOnlineUsers = Array(dataOnlineUsers.length).fill(percentile(dataOnlineUsers, 0.90));
+    const floorOnlineUsers = Array(dataOnlineUsers.length).fill(percentile(dataOnlineUsers, 0.10));
     const rollingAvgOnlineUsers = dataOnlineUsers.map((_, idx, arr) => {
       const start = Math.max(0, idx - 23);
       const slice = arr.slice(start, idx + 1);
@@ -377,6 +377,23 @@ function combineSmallCounts(labels, data, threshold = 50) {
   return { labels: newLabels, data: newData };
 }
 
+function percentile(arr, p) {
+  if (!arr.length) return null;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const idx = Math.floor(p * (sorted.length - 1));
+  return sorted[idx];
+}
+
+function rollingStd(arr, window) {
+  return arr.map((_, idx) => {
+    const start = Math.max(0, idx - window + 1);
+    const slice = arr.slice(start, idx + 1);
+    const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
+    const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / slice.length;
+    return Math.sqrt(variance);
+  });
+}
+
 function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS, gridLineColor = 'rgba(255, 255, 255, 0.1)') {
   return {
     type: 'line',
@@ -497,6 +514,13 @@ function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, 
 }
 
 function generateHourlyChartConfigStats(labels, dataOnlineUsers, ceiling, floor, rollingAvg) {
+
+  // Calculates the Bollinger Bands
+  const window = 24;
+  const stdOnlineUsers = rollingStd(dataOnlineUsers, window);
+  const upperBand = rollingAvgOnlineUsers.map((avg, i) => avg + 2 * stdOnlineUsers[i]);
+  const lowerBand = rollingAvgOnlineUsers.map((avg, i) => avg - 2 * stdOnlineUsers[i]);
+
   return {
     type: 'line',
     data: {
@@ -511,7 +535,7 @@ function generateHourlyChartConfigStats(labels, dataOnlineUsers, ceiling, floor,
           yAxisID: 'y',
         },
         {
-          label: 'Ceiling (Max)',
+          label: 'Resistance (Ceiling)',
           data: ceiling,
           borderColor: '#FFD700',
           borderDash: [8, 4],
@@ -520,7 +544,7 @@ function generateHourlyChartConfigStats(labels, dataOnlineUsers, ceiling, floor,
           yAxisID: 'y',
         },
         {
-          label: 'Floor (Min)',
+          label: 'Support (Floor)',
           data: floor,
           borderColor: '#00FF00',
           borderDash: [8, 4],
@@ -529,10 +553,28 @@ function generateHourlyChartConfigStats(labels, dataOnlineUsers, ceiling, floor,
           yAxisID: 'y',
         },
         {
-          label: '24h Rolling Avg',
+          label: '24h Simple Moving Average',
           data: rollingAvg,
           borderColor: '#FF8C00',
           borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Bollinger Upper',
+          data: upperBand,
+          borderColor: '#FF0000',
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Bollinger Lower',
+          data: lowerBand,
+          borderColor: '#f200ff',
+          borderDash: [4, 4],
           pointRadius: 0,
           fill: false,
           yAxisID: 'y',
