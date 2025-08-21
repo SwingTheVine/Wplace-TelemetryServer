@@ -27,6 +27,12 @@ The stored data is deleted every hour, and is compiled into the following long-t
 
 The long-term storage is stripped of all PII. Therefore, the data can be considered ephemeral/anonymous.
 
+## Why Do You Need This Data?
+The telemetry data is currently used so I can:
+1. Tell how many users have updated to the next version. Inversely, if a bunch of users are staying at a downgraded version, that speaks volumes about the compatibility of the next version up. For example, if the latest version is 0.83.0, and the version has been out for a week (the userscript auto-updates every 24 hours), it means the users running 0.81.0 are intentionally running version 0.81.0 because they encountered an issue with either 0.82.0 or 0.83.0.
+2. The pure, anonymous user count per browser/OS. This tells me which browsers/OS work with Blue Marble. Inversely, if a popular browser/OS is *not* listed in the data, it means Blue Marble does not work on that browser/OS due to the [survivorship bias](https://en.wikipedia.org/wiki/Survivorship_bias) in the data. For example, if 0.5% of Blue Marble users are on Edge, this means Blue Marble does not work on Edge for most users because statistically, [5% of all internet users are on Edge](https://gs.statcounter.com/). This data shows that users are intentionally avoiding using Edge (and we can assume therefore that Blue Marble does not work on Edge)
+3. Online users. This one is simple. If Blue Marble starts to break wplace, users will disable Blue Marble and the "Online Users" statistic will drop. Watching this statistic will allow me to respond quickly to major outages. This has happened in the past when the openfreemap endpoint was changed by wplace, and it broke the game for all Blue Marble users.
+
 ## Disclaimers
 ### Who has access to the server?
 The server is hosted by ForceHost.
