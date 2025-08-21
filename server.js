@@ -157,7 +157,7 @@ async function generateHourlyChart() {
       }
     }
 
-    const combinedVersionTotals = combineSmallCounts(Object.keys(uniqueVersionTotals), Object.values(uniqueVersionTotals), 50);
+    const combinedVersionTotals = combineSmallCounts(Object.keys(uniqueVersionTotals), Object.values(uniqueVersionTotals), 25*24);
     const uniqueVersionTotalsColors = generateDistinctColors(combinedVersionTotals.labels.length);
 
     const gridLineColor = '#3690EA';
