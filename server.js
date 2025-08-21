@@ -411,7 +411,7 @@ function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, 
         {
           label: 'Versions',
           data: uniqueVersions,
-          borderColor: '#E866C5',
+          borderColor: '#98e866',
           backgroundColor: 'rgba(153, 102, 255, 0.15)',
           fill: true,
           yAxisID: 'y2',
