@@ -86,6 +86,87 @@ async function processQueue() {
 // Or in other words, the queue is always being processed, and the queue unblocks the thread every X miliseconds
 setInterval(processQueue, 10);
 
+/**
+ * Generic aggregator
+ * @param {string} sourceTable - raw table (e.g., 'heartbeats')
+ * @param {string} targetTable - totals table (e.g., 'totalsHourly')
+ * @param {number} startTime - start of interval (Unix timestamp in ms)
+ * @param {number} endTime - end of interval
+ * @param {string} intervalStartCol - column name in target table for start timestamp
+ */
+function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalStartCol, maxRows = undefined, wipeSource = true) {
+  // maxRows: maximum number of rows to keep in targetTable (rolling window)
+  // wipeSource: if true, delete source data after aggregation
+
+  const rows = db.prepare(`
+    SELECT version, browser, os
+    FROM ${sourceTable}
+    WHERE lastSeen >= ? AND lastSeen < ?
+  `).all(startTime, endTime);
+
+  if (isDebug) {
+    console.log(`Aggregating from ${sourceTable} to ${targetTable} for interval ${new Date(startTime).toUTCString()} to ${new Date(endTime).toUTCString()}`);
+    console.log(`Found ${rows.length} row${rows.length == 1 ? '' : 's'} to aggregate.`);
+    console.log('Rows:', rows);
+  }
+
+  const versionTotals = {};
+  const browserTotals = {};
+  const osTotals = {};
+  const onlineUsers = rows.length;
+
+  for (const row of rows) {
+    if (row.version) versionTotals[row.version] = (versionTotals[row.version] || 0) + 1;
+    if (row.browser) browserTotals[row.browser] = (browserTotals[row.browser] || 0) + 1;
+    if (row.os) osTotals[row.os] = (osTotals[row.os] || 0) + 1;
+  }
+
+  // Store totals in the target table
+  db.prepare(`
+    INSERT INTO ${targetTable} (${intervalStartCol}, onlineUsers, version, browser, os, lastSeen)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(${intervalStartCol}) DO UPDATE SET
+      onlineUsers = excluded.onlineUsers,
+      version = excluded.version,
+      browser = excluded.browser,
+      os = excluded.os,
+      lastSeen = excluded.lastSeen
+  `).run(
+    startTime,
+    onlineUsers,
+    JSON.stringify(versionTotals),
+    JSON.stringify(browserTotals),
+    JSON.stringify(osTotals),
+    endTime
+  );
+
+  // Rolling window: keep only maxRows most recent rows
+  if (maxRows) { // Only apply the maximum row limit when maxRows is truthy
+    const count = db.prepare(`SELECT COUNT(*) as cnt FROM ${targetTable}`).get().cnt;
+    if (count > maxRows) {
+      // Delete oldest rows
+      db.prepare(`
+        DELETE FROM ${targetTable}
+        WHERE ${intervalStartCol} IN (
+          SELECT ${intervalStartCol} FROM ${targetTable}
+          ORDER BY ${intervalStartCol} ASC
+          LIMIT ?
+        )
+      `).run(count - maxRows);
+    }
+  }
+
+  // Optionally delete aggregated raw data
+  if (wipeSource) {
+    db.prepare(`
+      DELETE FROM ${sourceTable}
+      WHERE lastSeen >= ? AND lastSeen < ?
+    `).run(startTime, endTime);
+  }
+}
+
+
+
 
 // CHARTS
 
