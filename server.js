@@ -174,7 +174,7 @@ function aggregateTotals(sourceTable, targetTable, startTime, endTime, intervalS
   );
 
   // Rolling window: keep only maxRows most recent rows
-  if (maxRows !== undefined && maxRows > 0) {
+  if (maxRows) { // Only apply the maximum row limit when maxRows is truthy
     const count = db.prepare(`SELECT COUNT(*) as cnt FROM ${targetTable}`).get().cnt;
     if (count > maxRows) {
       // Delete oldest rows
@@ -203,7 +203,7 @@ cron.schedule('0 * * * *', () => {
   console.log(`Hourly job at ${new Date().toUTCString()}`);
   const endTime = Date.now();
   const startTime = endTime - 60 * 60 * 1000;
-  aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart', 24, true); // 24-hour rolling, wipe source
+  aggregateTotals('heartbeats', 'totalsHourly', startTime, endTime, 'hourStart', 0, true); // no rolling, wipe source
 });
 
 // Daily
