@@ -26,11 +26,6 @@ db.prepare(`
   )
 `).run();
 
-db.prepare('DROP TABLE IF EXISTS totalsDaily').run();
-db.prepare('DROP TABLE IF EXISTS totalsWeekly').run();
-db.prepare('DROP TABLE IF EXISTS totalsMonthly').run();
-db.prepare('DROP TABLE IF EXISTS totalsYearly').run();
-
 // Creates the indexes for lastSeen to make queries faster
 db.prepare(`
   CREATE INDEX IF NOT EXISTS idx_lastSeen ON heartbeats(lastSeen)
