@@ -119,6 +119,12 @@ fastify.post('/heartbeat', async (request, reply) => {
   return { status: 'ok' };
 });
 
+
+
+// CHARTS
+
+
+
 let cachedHourlyChart = null; // Buffer for the cached chart image
 
 async function generateHourlyChart() {
@@ -128,6 +134,7 @@ async function generateHourlyChart() {
 
     // Add partial hour data from heartbeats
     const now = Date.now();
+    console.log(`Generating hourly chart at ${new Date(now).toLocaleTimeString()}`);
     const currentHourStart = new Date(now);
     currentHourStart.setMinutes(0, 0, 0);
     const currentHourStartMs = currentHourStart.getTime();
@@ -285,14 +292,21 @@ async function generateHourlyChart() {
     cachedHourlyChart = null;
   }
 }
+// Generate once at startup
+generateHourlyChart();
+
+
+
+// CRON
+
+
+
 
 // Generate hourly chart every 5 minutes
 cron.schedule('*/5 * * * *', () => {
   generateHourlyChart();
 });
 
-// Generate once at startup
-generateHourlyChart();
 
 // Hourly
 // cron.schedule('0 * * * *', () => {
