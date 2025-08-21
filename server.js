@@ -158,7 +158,7 @@ async function generateHourlyChart() {
 
     const gridLineColor = '#3690EA';
 
-    const hourlyChartConfigMain = generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS);
+    const hourlyChartConfigMain = generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS, gridLineColor);
 
     const hourlyChartConfigVersion = generateHourlyChartConfigPie('Version Distribution', uniqueVersionTotalsLabels, uniqueVersionTotalsData, uniqueVersionTotalsColors);
 
@@ -327,7 +327,7 @@ function generateDistinctColors(n) {
   return colors;
 }
 
-function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS) {
+function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS, gridLineColor = 'rgba(255, 255, 255, 0.1)') {
   return {
     type: 'line',
     data: {
