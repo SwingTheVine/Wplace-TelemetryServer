@@ -324,9 +324,9 @@ console.log('Server started successfully!');
 function generateDistinctColors(n) {
   const colors = [];
   for (let i = 0; i < n; i++) {
-    // Evenly distribute hues, use full saturation and 60% lightness for vibrancy
+    // Evenly distribute hues, use full saturation and 40% lightness for vibrancy
     const hue = Math.round((360 * i) / n);
-    colors.push(`hsl(${hue}, 80%, 60%)`);
+    colors.push(`hsl(${hue}, 80%, 40%)`);
   }
   return colors;
 }
@@ -452,6 +452,9 @@ function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, 
           labels: {
             color: '#ffffff'
           }
+        },
+        datalabels: {
+          display: false // Disables data labels on the points
         }
       }
     },
