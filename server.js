@@ -152,15 +152,14 @@ async function generateHourlyChart() {
       }
     }
 
-    const uniqueVersionTotalsLabels = Object.keys(uniqueVersionTotals);
-    const uniqueVersionTotalsData = Object.values(uniqueVersionTotals);
-    const uniqueVersionTotalsColors = generateDistinctColors(uniqueVersionTotalsLabels.length);
+    const combinedVersionTotals = combineSmallCounts(Object.keys(uniqueVersionTotals), Object.values(uniqueVersionTotals), 50);
+    const uniqueVersionTotalsColors = generateDistinctColors(combinedVersionTotals.labels.length);
 
     const gridLineColor = '#3690EA';
 
     const hourlyChartConfigMain = generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS, gridLineColor);
 
-    const hourlyChartConfigVersion = generateHourlyChartConfigPie('Version Distribution', uniqueVersionTotalsLabels, uniqueVersionTotalsData, uniqueVersionTotalsColors);
+    const hourlyChartConfigVersion = generateHourlyChartConfigPie('Version Distribution', combinedVersionTotals.labels, combinedVersionTotals.data, uniqueVersionTotalsColors);
 
     // Save the new charts to cache
     cachedChartHourlyMain = await chartJSNodeCanvas.renderToBuffer(hourlyChartConfigMain);
@@ -325,6 +324,28 @@ function generateDistinctColors(n) {
     colors.push(`hsl(${hue}, 80%, 60%)`);
   }
   return colors;
+}
+
+function combineSmallCounts(labels, data, threshold = 50) {
+  const newLabels = [];
+  const newData = [];
+  let otherCount = 0;
+
+  for (let i = 0; i < labels.length; i++) {
+    if (data[i] < threshold) {
+      otherCount += data[i];
+    } else {
+      newLabels.push(labels[i]);
+      newData.push(data[i]);
+    }
+  }
+
+  if (otherCount > 0) {
+    newLabels.push('Other');
+    newData.push(otherCount);
+  }
+
+  return { labels: newLabels, data: newData };
 }
 
 function generateHourlyChartConfigMain(labels, dataOnlineUsers, uniqueVersions, uniqueBrowsers, uniqueOS, gridLineColor = 'rgba(255, 255, 255, 0.1)') {
