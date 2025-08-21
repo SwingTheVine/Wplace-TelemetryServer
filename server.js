@@ -518,8 +518,8 @@ function generateHourlyChartConfigStats(labels, dataOnlineUsers, ceiling, floor,
   // Calculates the Bollinger Bands
   const window = 24;
   const stdOnlineUsers = rollingStd(dataOnlineUsers, window);
-  const upperBand = rollingAvgOnlineUsers.map((avg, i) => avg + 2 * stdOnlineUsers[i]);
-  const lowerBand = rollingAvgOnlineUsers.map((avg, i) => avg - 2 * stdOnlineUsers[i]);
+  const upperBand = rollingAvg.map((avg, i) => avg + 2 * stdOnlineUsers[i]);
+  const lowerBand = rollingAvg.map((avg, i) => avg - 2 * stdOnlineUsers[i]);
 
   return {
     type: 'line',
