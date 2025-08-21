@@ -321,7 +321,7 @@ fastify.get('/chart/hourly', async (request, reply) => {
       // Handle OS chart request
       serveThisChart = cachedChartHourlyOS;
       break;
-    default:
+    case undefined:
       serveThisChart = cachedChartHourlyMain; // Default to hourly line chart
       break;
   }
