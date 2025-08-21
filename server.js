@@ -149,7 +149,9 @@ async function generateHourlyChart() {
       }
     }
 
-    const uniqueVersionTotalsColors = generateDistinctColors(versionLabels.length);
+    const uniqueVersionTotalsLabels = Object.keys(uniqueVersionTotals);
+    const uniqueVersionTotalsData = Object.values(uniqueVersionTotals);
+    const uniqueVersionTotalsColors = generateDistinctColors(uniqueVersionTotalsLabels.length);
 
     const gridLineColor = '#3690EA';
 
@@ -270,10 +272,10 @@ async function generateHourlyChart() {
     const hourlyChartConfigVersion = {
       type: 'pie',
       data: {
-        labels: Object.keys(uniqueVersionTotals),
+        labels: uniqueVersionTotalsLabels,
         datasets: [{
           label: 'Version Distribution',
-          data: Object.values(uniqueVersionTotals),
+          data: uniqueVersionTotalsData,
           backgroundColor: uniqueVersionTotalsColors,
           borderColor: '#fff',
           borderWidth: 2
