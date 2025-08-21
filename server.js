@@ -416,33 +416,30 @@ fastify.post('/heartbeat', async (request, reply) => {
 
 // Endpoint to get hourly totals as a chart
 fastify.get('/chart/hourly', async (request, reply) => {
-  if (!request.query?.type) {
-    if (cachedChartHourlyMain) {
-      reply.type('image/png').send(cachedChartHourlyMain);
-    } else {
-      reply.status(503).send({ error: 'Chart not available yet' });
-    }
-  } else {
 
-    switch (request.query.type) {
-      case 'version': // Handle version chart request
-        if (cachedChartHourlyMain) {
-          reply.type('image/png').send(cachedChartHourlyMain);
-        } else {
-          reply.status(503).send({ error: 'Chart not available yet' });
-        }
-        break;
-      case 'browser':
-        // Handle browser chart request
-        break;
-      case 'os':
-        // Handle OS chart request
-        break;
-      default:
-        reply.status(400).send({ error: 'Invalid chart type' });
-        break;
-    }
-}});
+  let serveThisChart = undefined;
+
+  switch (request.query?.type) {
+    case 'version': // Handle version chart request
+      serveThisChart = cachedChartHourlyVersion;
+      break;
+    case 'browser':
+      // Handle browser chart request
+      break;
+    case 'os':
+      // Handle OS chart request
+      break;
+    default:
+      serveThisChart = cachedChartHourlyMain;
+      break;
+  }
+
+  if (serveThisChart) {
+    reply.type('image/png').send(serveThisChart);
+  } else {
+    reply.status(503).send({ error: 'Chart not available yet' });
+  }
+});
 
 // Start server
 fastify.listen({ port: fastifyPort, host: '0.0.0.0' })
